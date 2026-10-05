@@ -2,14 +2,14 @@
 """
 Pull the live price feed for the dashboard into data/live.json.
 
-Source: FRED (Federal Reserve Bank of St. Louis) public CSV downloads. No API key, standard library only.
-Daily series come from the EIA, monthly series from the IMF Primary Commodity Prices release.
+Sources, no API keys, standard library only: front-month exchange futures via Yahoo Finance (daily),
+falling back to FRED public CSVs (EIA daily spot, IMF monthly prices).
 Runs daily in GitHub Actions (see .github/workflows/pages.yml). If a series fails to download,
 the previous values are kept and flagged as stale, so one outage never blanks the page.
 
   python scripts/update_feed.py
 """
-import csv, io, json, sys, time, urllib.request
+import csv, io, json, sys, time, urllib.parse, urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -18,34 +18,53 @@ OUT = ROOT / "data" / "live.json"
 START = "2024-07-01"
 CLOSURE = "2026-02-27"  # last trading day before the Strait of Hormuz closure
 
-# id, label, unit, group, multiplier, note
+# Each series lists providers in order of preference. The first that answers wins.
+#   ("yahoo", symbol, multiplier, unit, note)  front-month futures, daily, no key
+#   ("fred", series id, multiplier, unit, note) FRED public CSV, no key (EIA daily, IMF monthly)
 SERIES = [
-    ("DCOILBRENTEU", "Brent crude", "$/bbl", "Energy", 1, "EIA spot, daily"),
-    ("DCOILWTICO", "WTI crude", "$/bbl", "Energy", 1, "EIA spot, daily"),
-    ("DDFUELNYH", "Diesel (NY Harbor ULSD)", "$/bbl", "Energy", 42, "EIA spot, daily, converted from $/gal"),
-    ("DHHNGSP", "Henry Hub gas", "$/MMBtu", "Energy", 1, "EIA spot, daily"),
-    ("PNGASJPUSDM", "LNG Asia", "$/MMBtu", "Energy", 1, "IMF, monthly"),
-    ("PNGASEUUSDM", "European gas", "$/MMBtu", "Energy", 1, "IMF, monthly"),
-    ("PCOPPUSDM", "Copper", "$/t", "Metals", 1, "IMF, monthly average"),
-    ("PNICKUSDM", "Nickel", "$/t", "Metals", 1, "IMF, monthly average"),
-    ("PWHEAMTUSDM", "Wheat", "$/t", "Food", 1, "IMF, monthly"),
-    ("PMAIZMTUSDM", "Maize", "$/t", "Food", 1, "IMF, monthly"),
-    ("PRICENPQUSDM", "Rice", "$/t", "Food", 1, "IMF, monthly"),
-    ("PSOYBUSDM", "Soybeans", "$/t", "Food", 1, "IMF, monthly"),
+    ("BRENT", "Brent crude", "Energy", [("yahoo", "BZ=F", 1, "$/bbl", "ICE Brent futures"), ("fred", "DCOILBRENTEU", 1, "$/bbl", "EIA spot")]),
+    ("WTI", "WTI crude", "Energy", [("yahoo", "CL=F", 1, "$/bbl", "NYMEX WTI futures"), ("fred", "DCOILWTICO", 1, "$/bbl", "EIA spot")]),
+    ("DIESEL", "Diesel (NY Harbor ULSD)", "Energy", [("yahoo", "HO=F", 42, "$/bbl", "NYMEX ULSD futures"), ("fred", "DDFUELNYH", 42, "$/bbl", "EIA spot")]),
+    ("HH", "Henry Hub gas", "Energy", [("yahoo", "NG=F", 1, "$/MMBtu", "NYMEX futures"), ("fred", "DHHNGSP", 1, "$/MMBtu", "EIA spot")]),
+    ("TTF", "European gas (TTF)", "Energy", [("yahoo", "TTF=F", 1, "EUR/MWh", "ICE TTF futures"), ("fred", "PNGASEUUSDM", 1, "$/MMBtu", "IMF monthly")]),
+    ("LNGASIA", "LNG Asia", "Energy", [("fred", "PNGASJPUSDM", 1, "$/MMBtu", "IMF monthly")]),
+    ("COPPER", "Copper", "Metals", [("yahoo", "HG=F", 2204.62, "$/t", "COMEX futures"), ("fred", "PCOPPUSDM", 1, "$/t", "IMF monthly")]),
+    ("NICKEL", "Nickel", "Metals", [("fred", "PNICKUSDM", 1, "$/t", "IMF monthly")]),
+    ("WHEAT", "Wheat", "Food", [("yahoo", "ZW=F", 0.367437, "$/t", "CBOT futures"), ("fred", "PWHEAMTUSDM", 1, "$/t", "IMF monthly")]),
+    ("MAIZE", "Maize", "Food", [("yahoo", "ZC=F", 0.393679, "$/t", "CBOT futures"), ("fred", "PMAIZMTUSDM", 1, "$/t", "IMF monthly")]),
+    ("RICE", "Rice", "Food", [("yahoo", "ZR=F", 22.0462, "$/t", "CBOT rough rice futures"), ("fred", "PRICENPQUSDM", 1, "$/t", "IMF monthly")]),
+    ("SOY", "Soybeans", "Food", [("yahoo", "ZS=F", 0.367437, "$/t", "CBOT futures"), ("fred", "PSOYBUSDM", 1, "$/t", "IMF monthly")]),
 ]
 
+UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36"
 
-def fetch(sid, tries=3):
-    url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}&cosd={START}"
+
+def get(url, timeout=12, tries=2):
+    err = None
     for k in range(tries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "chokepoint-ledger/1.0 (educational dashboard)"})
-            with urllib.request.urlopen(req, timeout=30) as r:
+            req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
                 return r.read().decode("utf-8")
-        except Exception as e:  # network hiccup, retry with backoff
+        except Exception as e:
             err = e
-            time.sleep(2 * (k + 1))
+            time.sleep(1.5 * (k + 1))
     raise err
+
+
+def from_fred(sid, mult):
+    text = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}&cosd={START}")
+    return parse(text, mult)
+
+
+def from_yahoo(sym, mult):
+    j = json.loads(get(f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(sym)}?range=2y&interval=1d"))
+    res = j["chart"]["result"][0]
+    out = {}
+    for t, c in zip(res["timestamp"], res["indicators"]["quote"][0]["close"]):
+        if c is not None:
+            out[datetime.fromtimestamp(t, timezone.utc).date().isoformat()] = round(c * mult, 3)
+    return sorted(out.items())
 
 
 def parse(text, mult):
@@ -101,38 +120,42 @@ def main():
         except Exception:
             pass
     out, ok = [], 0
-    for sid, label, unit, group, mult, note in SERIES:
-        try:
-            pts = parse(fetch(sid), mult)
-            if not pts:
-                raise ValueError("no observations")
-            out.append(summarise(sid, label, unit, group, note, pts)); ok += 1
-            print(f"  {sid:<14} {pts[-1][0]}  {pts[-1][1]}")
-        except Exception as e:
-            print(f"  {sid:<14} FAILED ({e})", file=sys.stderr)
-            if sid in old:
-                out.append(old[sid] | {"stale": True})
-    # derived: diesel crack versus Brent, the refining margin signal discussed in the analysis
+    for key, label, group, providers in SERIES:
+        got = None
+        for src, sym, mult, unit, note in providers:
+            try:
+                pts = from_yahoo(sym, mult) if src == "yahoo" else from_fred(sym, mult)
+                if len(pts) < 5:
+                    raise ValueError("too few observations")
+                got = summarise(key, label, unit, group, f"{note} ({sym})", pts)
+                print(f"  {key:<8} {src:<5} {sym:<13} {pts[-1][0]}  {pts[-1][1]}", flush=True)
+                break
+            except Exception as e:
+                print(f"  {key:<8} {src:<5} {sym:<13} failed: {str(e)[:80]}", flush=True)
+        if got:
+            out.append(got); ok += 1
+        elif key in old:
+            out.append(old[key] | {"stale": True})
     by = {s["id"]: s for s in out}
-    if "DDFUELNYH" in by and "DCOILBRENTEU" in by:
-        b = dict(by["DCOILBRENTEU"]["points"])
-        pts = [[d, round(v - b[d], 2)] for d, v in by["DDFUELNYH"]["points"] if d in b]
-        if pts:
-            s = summarise("CRACK", "Diesel crack vs Brent", "$/bbl", "Energy", "Derived: NY Harbor ULSD minus Brent", pts)
+    if "DIESEL" in by and "BRENT" in by and not by["DIESEL"]["stale"] and not by["BRENT"]["stale"]:
+        b = dict(map(tuple, by["BRENT"]["points"]))
+        pts = [(d, round(v - b[d], 2)) for d, v in by["DIESEL"]["points"] if d in b]
+        if len(pts) >= 5:
+            s = summarise("CRACK", "Diesel crack vs Brent", "$/bbl", "Energy", "Derived: ULSD minus Brent", pts)
             s["chg_prewar"] = round(s["latest"] - s["prewar"], 2) if s["prewar"] is not None else None
             s["chg_1m"] = None
             s["absolute_change"] = True
             out.insert(3, s)
-    if ok == 0 and old:
-        print("All downloads failed. Keeping the previous feed.", file=sys.stderr)
+    if ok == 0:
+        print("All downloads failed. Keeping the previous feed.", flush=True)
         return 0
     OUT.write_text(json.dumps({
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
         "closure": CLOSURE,
-        "source": "FRED, Federal Reserve Bank of St. Louis (EIA and IMF data)",
+        "source": "Exchange futures via Yahoo Finance and FRED (EIA, IMF)",
         "series": out,
     }, separators=(",", ":")))
-    print(f"Wrote data/{OUT.name}: {ok}/{len(SERIES)} series fresh")
+    print(f"Wrote data/{OUT.name}: {ok}/{len(SERIES)} series fresh", flush=True)
     return 0
 
 

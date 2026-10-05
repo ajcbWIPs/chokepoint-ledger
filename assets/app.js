@@ -70,7 +70,7 @@
     $("#tape").innerHTML = D.headline.map((h) => {
       const s = live && h.live && live.byId[h.live];
       if (s && !s.stale) {
-        return `<div><span class="k">${h.label}<span class="livetag">LIVE</span></span><span class="v">${d3.format(",.0f")(s.latest)}<small>${h.unit}</small></span><span class="n">${s.note.split(",")[0]} spot, ${s.date}. ${d3.format("+.0%")(s.chg_prewar)} since closure</span></div>`;
+        return `<div><span class="k">${h.label}<span class="livetag">LIVE</span></span><span class="v">${d3.format(",.0f")(s.latest)}<small>${h.unit}</small></span><span class="n">${s.note.split(" (")[0]}, ${s.date}. ${d3.format("+.0%")(s.chg_prewar)} since closure</span></div>`;
       }
       return `<div><span class="k">${h.label}</span><span class="v">${h.value}<small>${h.unit}</small></span><span class="n">${h.note}</span></div>`;
     }).join("");

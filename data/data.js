@@ -11,8 +11,8 @@ window.DATA = {
   headline: [
     { label: "Gulf output shut in", value: ">10", unit: "mb/d", note: "IEA OMR, Sep 2026", src: "iea" },
     { label: "Global stock draw since Feb", value: "507", unit: "mb", note: "about 2.8 mb/d average", src: "iea" },
-    { label: "Brent", value: "105", unit: "$/bbl", note: "ICE futures, Sep. Dated hit $113.48 on 9 Sep", src: "iea", live: "DCOILBRENTEU" },
-    { label: "Diesel", value: ">200", unit: "$/bbl", note: "94% above pre-war", src: "iea", live: "DDFUELNYH" },
+    { label: "Brent", value: "105", unit: "$/bbl", note: "ICE futures, Sep. Dated hit $113.48 on 9 Sep", src: "iea", live: "BRENT" },
+    { label: "Diesel", value: ">200", unit: "$/bbl", note: "94% above pre-war", src: "iea", live: "DIESEL" },
     { label: "Copper record", value: "14,875", unit: "$/t", note: "10 Sep 2026", src: "cu" },
     { label: "FAO cereals index", value: "+17", unit: "% y/y", note: "Sep 2026, wheat and maize at multi-year highs", src: "fao" }
   ],

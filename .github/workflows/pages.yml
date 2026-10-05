@@ -23,12 +23,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Pull live prices from FRED
-        run: python scripts/update_feed.py
+      - name: Pull live prices
+        run: python -u scripts/update_feed.py
+        timeout-minutes: 6
+        continue-on-error: true
       - name: Save the feed to the repo (history and local dev)
         run: |
           git config user.name "feed-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          [ -f data/live.json ] || { echo "No feed yet"; exit 0; }
           git add data/live.json
           if git diff --cached --quiet; then echo "Feed unchanged"; else
             git commit -m "Update live price feed $(date -u +%Y-%m-%d)" && git push; fi
