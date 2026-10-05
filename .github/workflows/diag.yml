@@ -11,15 +11,22 @@ jobs:
       - run: |
           set +e
           {
-          B=https://api.db.nomics.world/v22
-          for c in PET/RBRTE.D PET/RWTC.D PET/EER_EPD2DXL0_PF4_Y35NY_DPG.D NG/RNGWHHD.D; do
-            echo "== EIA $c"; curl -sS --max-time 20 "$B/series/EIA/$c?observations=1" | jq -r '.series.docs[0] | "last \(.period[-1]) = \(.value[-1]) | n=\(.period|length)"'
-          done
-          echo "== WB datasets"
-          curl -sS --max-time 20 "$B/search?q=commodity%20prices%20pink%20sheet&limit=8" | jq -r '.results.docs[] | "\(.provider_code)/\(.code) | \(.name) | indexed \(.indexed_at)"'
-          curl -sS --max-time 20 "$B/datasets/WB?limit=60" | jq -r '.datasets.docs[] | "\(.code) | \(.name) | \(.converted_at)"' | grep -i -E "commod|pink|cmo" | head
-          echo "== worldbank pink sheet page"
-          curl -sSL --max-time 20 -A "Mozilla/5.0" "https://www.worldbank.org/en/research/commodity-markets" | grep -o 'https://thedocs.worldbank.org[^"]*Monthly[^"]*xlsx' | head -3
+          pip -q install openpyxl
+          U=$(curl -sSL --max-time 20 -A "Mozilla/5.0" "https://www.worldbank.org/en/research/commodity-markets" | grep -o 'https://thedocs.worldbank.org[^"]*Monthly[^"]*xlsx' | head -1)
+          echo "== $U"
+          curl -sSL --max-time 60 -A "Mozilla/5.0" -o cmo.xlsx "$U"; ls -la cmo.xlsx
+          python3 - <<'PY'
+          import openpyxl
+          wb = openpyxl.load_workbook("cmo.xlsx", read_only=True, data_only=True)
+          print("sheets:", wb.sheetnames)
+          ws = wb["Monthly Prices"]
+          rows = list(ws.iter_rows(values_only=True))
+          for i in range(0, 8):
+              print(i, [str(c)[:22] for c in rows[i] if c is not None][:80])
+          for r in rows[-3:]:
+              print("last", [str(c)[:9] for c in r][:12])
+          print("ncols", max(len(r) for r in rows), "nrows", len(rows))
+          PY
           echo "== dns"; getent hosts query1.finance.yahoo.com fred.stlouisfed.org; echo "== env"; env | grep -i proxy
           echo "== python urllib"
           timeout 40 python3 -c "
