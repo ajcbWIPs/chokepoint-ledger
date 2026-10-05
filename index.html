@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chokepoint Ledger</title>
+<meta name="description" content="Interactive map of global energy, fertiliser, food and metal supply lines with vulnerability scoring and supply constraint analysis.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <p class="eyebrow">Global commodity flows / supply line monitor</p>
+      <h1>Chokepoint Ledger</h1>
+      <p class="lede">Where crude, refined fuel, LNG, fertiliser, grain and metals physically move, which lanes are breaking, and which commodities run out of slack first. Built around the 2026 Strait of Hormuz closure.</p>
+    </div>
+    <div class="meta">
+      <span class="eyebrow">Data as of <span id="asof" class="mono"></span></span>
+      <span><span class="pill st-severe">Hormuz: severe</span></span>
+    </div>
+  </header>
+
+  <section class="tape" id="tape" aria-label="Headline indicators"></section>
+
+  <section class="live" id="live" aria-label="Live prices" hidden>
+    <div class="live-head">
+      <h2>Live prices</h2>
+      <span class="eyebrow" id="liveStamp"></span>
+    </div>
+    <div class="live-grid" id="liveGrid"></div>
+    <p class="note" id="liveNote"></p>
+  </section>
+
+  <section class="desk" aria-label="Map">
+    <div class="mapbox">
+      <svg id="map" role="img" aria-label="World map of commodity supply lines coloured by vulnerability"></svg>
+      <div class="mapctl">
+        <button class="btn" id="zoomReset" type="button">Reset view</button>
+        <button class="btn" id="zoomGulf" type="button">Zoom to Gulf</button>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <aside class="side">
+      <div class="field">
+        <label for="layer">Country layer</label>
+        <select id="layer">
+          <option value="none">None</option>
+          <option value="prod">Crude production (mb/d)</option>
+          <option value="ref">Refinery capacity (mb/d)</option>
+          <option value="cons">Oil consumption (mb/d)</option>
+          <option value="bal">Refining balance: capacity minus use</option>
+          <option value="shutin">Output shut in now (est.)</option>
+          <option value="soil">Soil fertility index (est.)</option>
+          <option value="foodvul">Food input vulnerability (est.)</option>
+        </select>
+      </div>
+      <div class="field">
+        <span class="lab">Supply lines</span>
+        <div class="chips" id="groups"></div>
+      </div>
+      <div class="field">
+        <label for="commodity">Commodity</label>
+        <select id="commodity"></select>
+      </div>
+      <div class="field">
+        <label for="scen">Scenario: Hormuz reopening</label>
+        <input type="range" id="scen" min="0" max="100" step="5" value="0">
+        <div><span class="scen-val" id="scenVal">0%</span> <span class="note" id="scenNote">Current state, early Oct 2026</span></div>
+      </div>
+      <div class="detail" id="detail"></div>
+    </aside>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Analysis">
+    <button class="tab" role="tab" id="tab-lines" aria-selected="true" aria-controls="p-lines">Supply lines</button>
+    <button class="tab" role="tab" id="tab-rank" aria-selected="false" aria-controls="p-rank">Constraint ranking</button>
+    <button class="tab" role="tab" id="tab-div" aria-selected="false" aria-controls="p-div">Spot vs producers</button>
+    <button class="tab" role="tab" id="tab-bal" aria-selected="false" aria-controls="p-bal">Refining balance</button>
+    <button class="tab" role="tab" id="tab-method" aria-selected="false" aria-controls="p-method">Method and sources</button>
+  </nav>
+
+  <section class="panel" id="p-lines" role="tabpanel" aria-labelledby="tab-lines">
+    <p class="callout">Vulnerability blends chokepoint risk, supplier concentration, how hard it is to switch origin, importer stock cover and the share of flow that is stopped right now. Click a column to sort, click a row to find it on the map.</p>
+    <div class="tscroll"><table id="routeTable"></table></div>
+  </section>
+
+  <section class="panel" id="p-rank" role="tabpanel" aria-labelledby="tab-rank" hidden>
+    <div class="split">
+      <div class="chart" id="rankChart"></div>
+      <div style="display:grid;gap:14px">
+        <div class="weights" id="weights"></div>
+        <div class="callout" id="rankRead"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-div" role="tabpanel" aria-labelledby="tab-div" hidden>
+    <p class="callout"><strong>Why spot prices and producer earnings drift apart.</strong> A supply shock raises the spot price, but a producer only keeps the part that is not eaten by its own inputs, its hedges, its contracts and its location. In 2026 the same disruption that lifts metal and fertiliser prices also raises the price of diesel, sulphuric acid and ammonia, which are the inputs that miners and fertiliser makers burn.</p>
+    <div class="ledger" id="ledger"></div>
+    <p class="note">Educational analysis, not investment advice.</p>
+  </section>
+
+  <section class="panel" id="p-bal" role="tabpanel" aria-labelledby="tab-bal" hidden>
+    <div class="split">
+      <div class="chart" id="balChart"></div>
+      <div class="callout" id="balRead"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-method" role="tabpanel" aria-labelledby="tab-method" hidden>
+    <div class="split">
+      <div style="display:grid;gap:12px;max-width:72ch">
+        <h3>How the scores work</h3>
+        <p><b>Supply line vulnerability</b> = weighted sum of chokepoint risk (highest risk chokepoint on the lane), supplier concentration, 1 minus substitutability, stock thinness (1 minus cover days / 180, floored at 0) and current disruption. Hormuz dependent lanes scale their disruption and chokepoint risk down as the reopening slider rises.</p>
+        <p><b>Commodity constraint score</b> = weighted sum of seven 0 to 1 factors. The ghost tick on each bar is the score with Hormuz fully reopened. A long gap means the constraint is transient. A short gap means it is structural.</p>
+        <p><b>Soil fertility and food input vulnerability</b> are indicative teaching composites. Food input vulnerability = 0.4 x (1 minus soil index/100) + 0.3 x fertiliser import share + 0.3 x share of fertiliser imports routed through Hormuz. Replace them with ISRIC SoilGrids and FAOSTAT data for publication grade work.</p>
+        <p>Items tagged <span class="est">EST</span> are model estimates built from the cited reporting and standard reference balances. Country oil balances are approximate 2024 to 2025 pre-war values. All inputs live in <span class="mono">data/data.js</span>.</p>
+      </div>
+      <div>
+        <h3 style="margin-bottom:10px">Sources</h3>
+        <ul class="sources" id="sources"></ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Open data dashboard for education. Not investment advice. Figures are approximate and some are model estimates, labelled EST.</span>
+    <span>Edit <span class="mono">data/data.js</span> and push to update the live site.</span>
+  </footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+<script src="assets/vendor/d3.min.js"></script>
+<script src="assets/vendor/topojson-client.min.js"></script>
+<script src="data/world.js"></script>
+<script src="data/data.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

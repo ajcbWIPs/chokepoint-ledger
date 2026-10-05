@@ -1,0 +1,120 @@
+# Episode 2 long form (about 6 minutes) plus three Shorts.
+id: ep02_spot_vs_producers
+title: "Record Copper, Lagging Miners: Why Spot Prices and Producers Disagree in 2026"
+dashboard_url: "https://YOUR-USERNAME.github.io/commodity-flows/#div"
+# Narration voice: Australian-accented male (VCTK speaker p254), offline.
+# Alternative on a normal internet connection: --tts edge --voice en-AU-WilliamNeural --pitch=-4Hz
+voice: {tts: vctk, voice: p254, pace: 1.05}
+tags: [copper, mining, fertiliser, LNG, refining, commodities, supply chain, engineering]
+description: >
+  The 2026 Hormuz closure lifted copper to a record, doubled urea and pushed diesel above $200 a barrel.
+  But producer earnings did not move with the spot price. This episode works through the mechanisms
+  (input costs, contracts, hedges, geography and by-products) and where the gaps are likely to open next.
+sources:
+  - "IEA Oil Market Report, September 2026"
+  - "Kpler, Sulphur and sulphuric acid in 2026"
+  - "World Bank, Fertilizer prices surge as Strait of Hormuz disruptions tighten supplies"
+  - "Copper price data, Q3 2026"
+  - "Mining Technology, China rare earth export pause nears expiry"
+
+scenes:
+  - id: hook
+    chapter: Intro
+    narration: >
+      Copper hit a record $14,875/t on the 10th of September. If you only looked at the price, you would assume every copper miner
+      is having its best year ever. It is more complicated than that. The same shock that pushed the price up also pushed up the cost
+      of almost everything a mine burns. This video is about the gap between the spot price and what producers actually keep.
+    visual: {type: stat, value: "$14,875", unit: "per tonne, 10 Sep 2026", label: "Copper at a record", note: "Shanghai exchange stocks down about 70% since June", color: metals}
+
+  - id: framework
+    chapter: Five reasons prices and producers diverge
+    narration: >
+      There are five mechanisms. First, input costs. Second, contracts that reset slowly. Third, hedge books struck before the shock.
+      Fourth, geography, meaning which side of the chokepoint you sit on. Fifth, by-products, where one company's waste becomes
+      another company's critical input. Every case in this video is some combination of those five.
+    visual:
+      type: list
+      text: "Why spot and producer earnings drift apart"
+      items: ["Input costs move with the shock", "Contracts reset slowly", "Hedges were struck pre-war", "Geography decides who ships", "By-products link unrelated markets"]
+      color: accent
+
+  - id: copper
+    chapter: Copper
+    narration: >
+      Start with copper. Open pit mines run huge diesel haul fleets, and diesel is up 94%. Blasting uses ammonium nitrate, which tracks ammonia.
+      About 15% of the world's copper cathode comes from SX-EW plants that leach ore with sulphuric acid, and acid is now a war-priced import.
+      So the metal price rises, but margins rise much less, and producers that rely on leaching lag producers that ship concentrate.
+      Smelters are a different story again. Treatment charges sit near zero because concentrate is so scarce,
+      but smelters make sulphuric acid as a by-product and are now selling it at a premium.
+    visual:
+      type: dashboard
+      scene: {tab: div}
+      scroll: "#p-div"
+
+  - id: oil
+    chapter: Crude and diesel
+    narration: >
+      In oil, the tell is the spread between physical and paper. Dated Brent reached $113.48 on the 9th of September while futures sat near $105.
+      Gulf producers with stranded barrels earn nothing on them. Producers in the Americas sell into the spike, but many hedged before the war.
+      The clear winners are refiners outside the Gulf, which are earning record margins on diesel.
+    visual:
+      type: dashboard
+      scene: {tab: bal}
+      scroll: "#p-bal"
+
+  - id: fert
+    chapter: Fertiliser
+    narration: >
+      Fertiliser shows the geography effect most clearly. Urea rose around 80% between February and April.
+      A producer with cheap gas outside the strait, in the United States, North Africa or at Sur in Oman, earns a windfall.
+      A European producer pays for gas in a market that just lost about a fifth of global LNG trade, so its margin can shrink even at a high urea price.
+      Phosphate is worse. Every phosphate producer burns sulphur to make phosphoric acid. Mosaic cut about 2 million tonnes of US output on input costs.
+      Here the input inflated faster than the product.
+    visual:
+      type: dashboard
+      scene: {group: Fertiliser, commodity: Urea, zoom: [30, 15, 1.6], view: map}
+      timeline:
+        - {at: 14, scene: {select: r20, zoom: [60, 22, 3.4], ms: 2500}}
+
+  - id: lng
+    chapter: LNG and rare earths
+    narration: >
+      LNG is a contracts story. Most American export capacity is sold under fixed tolling fees, so when Asian spot gas spikes,
+      the liquefaction owner barely notices. The trader holding uncontracted cargoes captures it.
+      Rare earths are a policy story. China holds up to 90% of processing, and the pause on its expanded export controls ends on the 10th of November.
+      Western miners trade on policy support and an ex-China premium, not on the Chinese benchmark price.
+    visual: {type: stat, value: "10 Nov", unit: "2026", label: "Rare earth export pause ends", note: "April 2025 licensing on seven heavy rare earths still applies", color: metals}
+
+  - id: food
+    chapter: The lagged risk in food
+    narration: >
+      The last gap is in food, and it is a timing gap. Wheat is at its highest since August 2023 and maize is at a three year high.
+      But grain futures mostly price this season. Fertiliser affordability is at its weakest since mid 2022,
+      so farmers apply less now, and the yield hit lands next season. That risk is easy to under-price.
+    visual:
+      type: dashboard
+      scene: {group: Fertiliser, layer: foodvul, zoom: reset, view: map}
+
+  - id: outro
+    chapter: Wrap up
+    narration: >
+      So when you see a record commodity price, ask five questions. What does the producer burn? How are its contracts priced?
+      Is it hedged? Which side of the chokepoint is it on? And is it selling someone else's by-product?
+      The dashboard with every number is linked below. This is educational content, not investment advice.
+    visual: {type: title, text: "Price is not profit", sub: "Five questions to ask before assuming a producer wins from a shortage"}
+
+shorts:
+  - id: copper_gap
+    title: "Copper is at a record. Why aren't miners?"
+    hook: {text: "Record copper. Lagging miners.", say: "Copper is at a record. So why aren't miners celebrating?"}
+    scenes: [copper]
+    caption: "Diesel, acid and explosives all got more expensive too."
+  - id: five_questions
+    title: "5 questions before you assume a producer wins"
+    scenes: [framework, outro]
+    caption: "Price is not profit."
+  - id: urea_geography
+    title: "Same urea price, opposite outcomes"
+    hook: {text: "Same price. Opposite outcomes.", say: "Two fertiliser plants, same price, opposite results."}
+    scenes: [fert]
+    caption: "Gas cost and geography decide who profits."

@@ -1,0 +1,12 @@
+video/out/
+video/voices/*.onnx
+video/voices/*.onnx.json
+video/client_secret.json
+video/token.json
+video/recordings/
+__pycache__/
+.DS_Store
+artifact.html
+video/voices/*.bin
+video/my_voice/
+video/voices/

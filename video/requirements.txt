@@ -1,0 +1,14 @@
+pyyaml>=6
+pillow>=10
+playwright>=1.45
+coqui-tts[codec]>=0.27
+transformers>=4.57,<5
+kokoro-onnx>=0.4
+soundfile>=0.12
+piper-tts>=1.2
+edge-tts>=6.1
+# optional: local transcription for your own recordings and clip_shorts.py
+# faster-whisper>=1.0
+# optional: YouTube upload
+# google-api-python-client>=2.100
+# google-auth-oauthlib>=1.2

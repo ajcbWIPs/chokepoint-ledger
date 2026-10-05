@@ -1,0 +1,233 @@
+# Episode 1 long form (about 6 minutes with Piper at pace 1.0) plus four Shorts.
+# Narration is written to be read aloud. Units like mb/d and $/t are expanded automatically for the voice
+# and kept short in the captions. Edit freely, then re-run make_video.py.
+id: ep01_chokepoints
+title: "Which Commodities Run Out First? The 2026 Hormuz Shock, Mapped"
+dashboard_url: "https://YOUR-USERNAME.github.io/commodity-flows/"
+# Narration voice: Australian-accented male (VCTK speaker p254), offline.
+# Alternative on a normal internet connection: --tts edge --voice en-AU-WilliamNeural --pitch=-4Hz
+voice: {tts: vctk, voice: p254, pace: 1.05}
+tags: [commodities, Strait of Hormuz, oil, diesel, fertiliser, sulphur, copper, LNG, supply chain, engineering]
+description: >
+  The Strait of Hormuz has been effectively closed since the end of February 2026. Oil gets the headlines,
+  but oil is not the commodity with the least slack. We map 39 supply lines across energy, fertiliser,
+  food and metals, score each one for vulnerability, and rank which commodities are most likely to be
+  supply constrained, including which constraints survive a reopening.
+sources:
+  - "IEA Oil Market Report, September 2026"
+  - "Lloyd's List Intelligence, Strait of Hormuz Brief, 9 September 2026"
+  - "IFPRI, Iran war: from fertilizer to food crisis?"
+  - "World Bank, Fertilizer prices surge as Strait of Hormuz disruptions tighten supplies"
+  - "Kpler, Sulphur and sulphuric acid in 2026"
+  - "FAO Food Price Index, September 2026"
+
+scenes:
+  - id: hook
+    chapter: Intro
+    narration: >
+      Since the end of February, the Strait of Hormuz has been effectively closed to normal traffic.
+      Most coverage stops at the oil price. That misses the more interesting problem.
+      Oil is the biggest flow through the strait, but it is not the commodity with the least slack.
+      In this video we map the major supply lines that pass through it, score how fragile each one is,
+      and rank which commodities run out first.
+    visual:
+      type: dashboard
+      scene: {zoom: reset, view: map}
+      timeline:
+        - {at: 5.5, scene: {zoom: [53, 24, 3.4], ms: 4500}}
+    visual_vertical:
+      type: dashboard
+      scene: {zoom: [70, 15, 1.6]}
+      timeline:
+        - {at: 4, scene: {zoom: [55, 24, 4], ms: 4000}}
+
+  - id: scale
+    narration: >
+      Start with the scale. The IEA estimates that more than 10 mb/d of Gulf output was still shut in by September.
+      That is roughly a tenth of world supply. Global inventories have drawn 507 million barrels since February,
+      which works out to about 2.8 mb/d of stock being burned to keep the system running.
+    visual: {type: stat, value: ">10", unit: "mb/d", label: "Gulf oil output shut in", note: "IEA Oil Market Report, September 2026", color: severe}
+
+  - id: refining
+    chapter: Crude versus refining
+    narration: >
+      But crude is only half the picture. Nobody burns crude. You burn diesel, petrol and jet fuel,
+      and those come out of refineries. This layer shows production. Now switch to refinery capacity.
+      The two maps look nothing alike. Now subtract consumption from refining capacity.
+      Blue countries can refine more than they use. Orange countries depend on someone else's refinery.
+      Australia is a good example. It refines about 0.2 mb/d and uses about 1.1, so most of its fuel comes from
+      Asian refineries that run on Gulf crude. The lane to Australia looks safe on the map, but its feedstock is not.
+    visual:
+      type: dashboard
+      scene: {layer: prod, zoom: reset}
+      timeline:
+        - {at: 9, scene: {layer: ref}}
+        - {at: 17, scene: {layer: bal}}
+        - {at: 31, scene: {zoom: [135, -10, 2.4], select: r12, ms: 2500}}
+    visual_vertical:
+      type: dashboard
+      scene: {layer: prod, zoom: [80, 20, 1.5]}
+      timeline:
+        - {at: 9, scene: {layer: ref}}
+        - {at: 17, scene: {layer: bal}}
+        - {at: 31, scene: {zoom: [135, -18, 2.6], select: r12, ms: 2500}}
+
+  - id: diesel
+    narration: >
+      That is why the product market broke harder than the crude market. According to the IEA, Gulf diesel exports
+      are running at about 390 thousand barrels a day, roughly a quarter of pre-war levels.
+      Diesel went above $200/bbl in early September, 94% above where it started. Brent rose far less.
+      The bottleneck is refining capacity, not barrels in the ground.
+    visual: {type: stat, value: ">$200", unit: "per barrel, diesel", label: "Products broke before crude", note: "Gulf diesel exports at about 25% of pre-war. IEA, September 2026", color: severe}
+
+  - id: lanes
+    chapter: Scoring the supply lines
+    narration: >
+      Here are the supply lines. Each one gets a vulnerability score from five inputs.
+      The riskiest chokepoint on the route. How concentrated the suppliers are. How hard it is to switch to another origin.
+      How many days of stock the importer holds. And how much of the flow is actually stopped right now.
+      Line width is the lane's share of world trade in that commodity. Redder means more fragile.
+      Zoom into the Gulf and you can see the problem. Crude, diesel, LNG, urea, sulphur, phosphate and helium
+      all leave through the same twenty one nautical miles of water.
+    visual:
+      type: dashboard
+      scene: {layer: none, zoom: reset, view: map}
+      timeline:
+        - {at: 25, scene: {zoom: [55, 25, 4.2], ms: 3500}}
+    visual_vertical:
+      type: dashboard
+      scene: {layer: none, zoom: [70, 15, 1.6]}
+      timeline:
+        - {at: 22, scene: {zoom: [55, 25, 4.5], ms: 3500}}
+
+  - id: lng
+    narration: >
+      LNG is a good example of lead time. Ras Laffan in Qatar handles about a fifth of global LNG trade.
+      It stopped on the 2nd of March after strikes, and about 17% of its capacity was damaged badly enough that repairs
+      could take years. Qatar is also a major helium producer, and that helium is stripped out of the same feed gas.
+      No LNG means no helium, and helium goes into MRI machines and semiconductor fabs.
+    visual:
+      type: dashboard
+      scene: {group: Energy, commodity: LNG, select: r13, zoom: [80, 20, 2.0]}
+
+  - id: fertiliser
+    chapter: Fertiliser and soil
+    narration: >
+      Now the fertiliser lanes. The Middle East supplies somewhere between a quarter and a third of the world's urea exports.
+      Urea prices roughly doubled in the weeks after the closure. Brazil gets about 40% of its fertiliser through Hormuz,
+      and East Africa about a third. Notice one lane that stays blue. Oman's urea plant at Sur sits outside the strait,
+      so it keeps shipping and collects the higher price.
+    visual:
+      type: dashboard
+      scene: {group: Fertiliser, layer: none, zoom: [40, 5, 1.5]}
+      timeline:
+        - {at: 20, scene: {select: r20, zoom: [62, 22, 3.5], ms: 2500}}
+
+  - id: soil
+    narration: >
+      This is where soil comes in. This layer is a teaching estimate of inherent soil fertility.
+      The Black Sea chernozems are some of the richest soils on earth and can carry a season of low fertiliser.
+      Brazil's weathered tropical soils, much of India, and Australia's old phosphorus poor soils cannot.
+      Combine soil quality with fertiliser import dependence and Hormuz exposure and you get this food input vulnerability map.
+      The countries in red do not run out of food this season. They lose yield next season, because farmers apply less when fertiliser is unaffordable.
+    visual:
+      type: dashboard
+      scene: {group: Fertiliser, layer: soil, zoom: reset, select: null}
+      timeline:
+        - {at: 27, scene: {layer: foodvul}}
+
+  - id: sulphur
+    chapter: The sulphur problem
+    narration: >
+      And now the commodity almost nobody is watching. Sulphur.
+      Most of the world's traded sulphur is a by-product of cleaning sour gas and refining crude, and the Gulf supplies around 40 to 45% of it.
+      Because it is a by-product, no producer can increase output when the price goes up.
+      Seaborne exports fell 45%, and China stopped exporting sulphuric acid at the same time.
+      Sulphuric acid is how you leach copper in SX-EW plants, how Indonesia's HPAL plants dissolve nickel laterite,
+      and how phosphate rock becomes fertiliser. Indonesia's HPAL plants sourced 75 to 80% of their sulphur from the Gulf.
+      One input links energy, metals and food.
+    visual:
+      type: dashboard
+      scene: {group: Fertiliser, commodity: Sulphur, layer: none, zoom: [80, 10, 1.6]}
+      timeline:
+        - {at: 30, scene: {select: r22, zoom: [105, 5, 2.8], ms: 3000}}
+    visual_vertical:
+      type: dashboard
+      scene: {group: Fertiliser, commodity: Sulphur, layer: none, zoom: [80, 15, 1.8]}
+      timeline:
+        - {at: 30, scene: {select: r22, zoom: [110, 5, 3.2], ms: 3000}}
+
+  - id: ranking
+    chapter: Which commodities run out first
+    narration: >
+      So which commodities are most likely to be supply constrained? This chart scores each one on seven factors.
+      Chokepoint exposure, exporter concentration, how long new supply takes, inventory cover, export control risk,
+      how inelastic demand is, and how much stress is visible today.
+      Sulphur ranks first, then helium, diesel, LNG and urea. Crude oil ranks ninth.
+      Now watch what happens when we reopen the strait. Most bars shrink a long way.
+      Heavy rare earths and copper barely move, and sulphur stays near the top.
+      Their constraint is mine lead time, processing concentration and by-product supply, not shipping.
+    visual:
+      type: dashboard
+      scene: {tab: rank, zoom: reset}
+      scroll: "#p-rank"
+      timeline:
+        - {at: 33, scene: {scen: 0.5}}
+        - {at: 35, scene: {scen: 1.0}}
+
+  - id: structural
+    narration: >
+      That distinction matters. A transient constraint clears when the ships move. A structural one does not.
+      If you are watching these markets, the structural list is where the long term story is.
+    visual:
+      type: list
+      text: "Still constrained after a reopening"
+      items: ["Heavy rare earths. Up to 90% of processing in China, export pause ends 10 Nov 2026", "Copper. 10 to 15 year mine lead times, Shanghai stocks down 70% since June", "Sulphur. A by-product, so supply cannot respond to price"]
+      color: severe
+
+  - id: divergence
+    chapter: Spot prices versus producers
+    narration: >
+      The last tab looks at a gap that will confuse a lot of people. Copper hit a record of $14,875/t in September.
+      You would expect copper miners to be printing money. But the same shock raised the price of diesel for haul trucks,
+      sulphuric acid for leaching, and ammonia for explosives. The metal outruns the miner.
+      The next video goes through that gap commodity by commodity.
+    visual:
+      type: dashboard
+      scene: {tab: div, zoom: reset, scen: 0}
+      scroll: "#p-div"
+      timeline:
+        - {at: 14, scroll_by: 380}
+
+  - id: outro
+    chapter: Explore it yourself
+    narration: >
+      The dashboard is free and linked in the description. Every number is in one data file, so you can change the weights,
+      update the figures, and check my working. Thanks for watching.
+    visual: {type: title, text: "Explore the map yourself", sub: "Link in the description. Every input is editable and every source is listed."}
+
+shorts:
+  - id: sulphur
+    title: "The commodity nobody is watching"
+    hook: {text: "Sulphur is the real bottleneck", say: "Forget oil for a second."}
+    scenes: [sulphur]
+    outro: "Full breakdown on the channel."
+    caption: "Copper, nickel and fertiliser all depend on one Gulf by-product."
+  - id: diesel
+    title: "Why diesel broke before crude"
+    hook: {text: "Diesel up 94%. Crude up far less. Why?", say: "Here is why diesel broke before crude."}
+    scenes: [diesel]
+    outro: "The full map of who refines what is on the channel."
+    caption: "Refining capacity, not oil in the ground, is the bottleneck."
+  - id: soil
+    title: "Soil decides who gets hurt"
+    hook: {text: "The fertiliser shock hits poor soils hardest", say: "Same fertiliser shock, very different outcomes."}
+    scenes: [soil]
+    outro: "Map linked on the channel."
+    caption: "Rich soils can skip a season of fertiliser. Weathered soils cannot."
+  - id: survivors
+    title: "What stays short even if Hormuz reopens"
+    hook: {text: "Reopen the strait. Three shortages stay.", say: "What happens if the strait reopens tomorrow?"}
+    scenes: [structural]
+    outro: "Full ranking in the long video."
+    caption: "Transient vs structural supply constraints."

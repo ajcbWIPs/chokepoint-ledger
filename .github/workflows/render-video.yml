@@ -1,0 +1,51 @@
+name: Render YouTube video and Shorts
+on:
+  workflow_dispatch:
+    inputs:
+      episode:
+        description: Episode file in video/episodes
+        default: ep01_chokepoints.yaml
+      tts:
+        description: Voice engine (piper is offline, edge is free Microsoft neural voices)
+        type: choice
+        options: [edge, kokoro, piper]
+        default: edge
+      voice:
+        description: Voice (kokoro am_michael / bm_george / af_heart, or edge en-AU-WilliamNeural)
+        default: en-AU-WilliamNeural
+      only:
+        type: choice
+        options: [all, long, shorts]
+        default: all
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install Python packages and Chromium
+        run: |
+          pip install -r video/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Get Kokoro voice
+        if: inputs.tts == 'kokoro'
+        run: python video/get_voice.py kokoro
+      - name: Get Piper voice
+        if: inputs.tts == 'piper'
+        run: python video/get_voice.py en_US-lessac-medium
+      - name: Render
+        run: python video/make_video.py "video/episodes/${{ inputs.episode }}" --tts ${{ inputs.tts }} --voice ${{ inputs.voice }} --only ${{ inputs.only }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video-output
+          path: |
+            video/out/**/*.mp4
+            video/out/**/*.srt
+            video/out/**/*.txt
+            video/out/**/*.json
+          retention-days: 14
