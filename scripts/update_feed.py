@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
-Pull the live price feed for the dashboard into data/live.json.
+Build the dashboard's live price feed, data/live.json. Runs daily in GitHub Actions.
 
-Sources, no API keys, standard library only: front-month exchange futures via Yahoo Finance (daily),
-falling back to FRED public CSVs (EIA daily spot, IMF monthly prices).
-Runs daily in GitHub Actions (see .github/workflows/pages.yml). If a series fails to download,
-the previous values are kept and flagged as stale, so one outage never blanks the page.
+Sources (both free):
+  1. World Bank Commodity Price Data ("Pink Sheet"), monthly averages, no key. Updated early each month.
+     Covers crude, gas, LNG, fertilisers (urea, DAP, potash, phosphate rock), metals and grains.
+  2. EIA Open Data API v2, daily spot prices for Brent, WTI, NY Harbor diesel and Henry Hub.
+     Optional: only used when an EIA_API_KEY secret is set (free key: https://www.eia.gov/opendata/register.php).
+     Daily series replace the monthly ones for the same commodity and enable the diesel crack.
 
-  python scripts/update_feed.py
+If a source fails, the previous values are kept and flagged STALE, so the page never goes blank.
+Needs: pip install openpyxl
 """
-import csv, io, json, sys, time, urllib.parse, urllib.request
+import io, json, os, re, sys, time, urllib.parse, urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -17,72 +20,98 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "live.json"
 START = "2024-07-01"
 CLOSURE = "2026-02-27"  # last trading day before the Strait of Hormuz closure
+UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36"
+WB_PAGE = "https://www.worldbank.org/en/research/commodity-markets"
 
-# Each series lists providers in order of preference. The first that answers wins.
-#   ("yahoo", symbol, multiplier, unit, note)  front-month futures, daily, no key
-#   ("fred", series id, multiplier, unit, note) FRED public CSV, no key (EIA daily, IMF monthly)
+# key, label, group, World Bank column name (prefix match), EIA daily spec (route, series, multiplier) or None, unit
 SERIES = [
-    ("BRENT", "Brent crude", "Energy", [("yahoo", "BZ=F", 1, "$/bbl", "ICE Brent futures"), ("fred", "DCOILBRENTEU", 1, "$/bbl", "EIA spot")]),
-    ("WTI", "WTI crude", "Energy", [("yahoo", "CL=F", 1, "$/bbl", "NYMEX WTI futures"), ("fred", "DCOILWTICO", 1, "$/bbl", "EIA spot")]),
-    ("DIESEL", "Diesel (NY Harbor ULSD)", "Energy", [("yahoo", "HO=F", 42, "$/bbl", "NYMEX ULSD futures"), ("fred", "DDFUELNYH", 42, "$/bbl", "EIA spot")]),
-    ("HH", "Henry Hub gas", "Energy", [("yahoo", "NG=F", 1, "$/MMBtu", "NYMEX futures"), ("fred", "DHHNGSP", 1, "$/MMBtu", "EIA spot")]),
-    ("TTF", "European gas (TTF)", "Energy", [("yahoo", "TTF=F", 1, "EUR/MWh", "ICE TTF futures"), ("fred", "PNGASEUUSDM", 1, "$/MMBtu", "IMF monthly")]),
-    ("LNGASIA", "LNG Asia", "Energy", [("fred", "PNGASJPUSDM", 1, "$/MMBtu", "IMF monthly")]),
-    ("COPPER", "Copper", "Metals", [("yahoo", "HG=F", 2204.62, "$/t", "COMEX futures"), ("fred", "PCOPPUSDM", 1, "$/t", "IMF monthly")]),
-    ("NICKEL", "Nickel", "Metals", [("fred", "PNICKUSDM", 1, "$/t", "IMF monthly")]),
-    ("WHEAT", "Wheat", "Food", [("yahoo", "ZW=F", 0.367437, "$/t", "CBOT futures"), ("fred", "PWHEAMTUSDM", 1, "$/t", "IMF monthly")]),
-    ("MAIZE", "Maize", "Food", [("yahoo", "ZC=F", 0.393679, "$/t", "CBOT futures"), ("fred", "PMAIZMTUSDM", 1, "$/t", "IMF monthly")]),
-    ("RICE", "Rice", "Food", [("yahoo", "ZR=F", 22.0462, "$/t", "CBOT rough rice futures"), ("fred", "PRICENPQUSDM", 1, "$/t", "IMF monthly")]),
-    ("SOY", "Soybeans", "Food", [("yahoo", "ZS=F", 0.367437, "$/t", "CBOT futures"), ("fred", "PSOYBUSDM", 1, "$/t", "IMF monthly")]),
+    ("BRENT", "Brent crude", "Energy", "Crude oil, Brent", ("petroleum/pri/spt", "RBRTE", 1), "$/bbl"),
+    ("WTI", "WTI crude", "Energy", "Crude oil, WTI", ("petroleum/pri/spt", "RWTC", 1), "$/bbl"),
+    ("DIESEL", "Diesel (NY Harbor ULSD)", "Energy", None, ("petroleum/pri/spt", "EER_EPD2DXL0_PF4_Y35NY_DPG", 42), "$/bbl"),
+    ("HH", "Henry Hub gas", "Energy", "Natural gas, US", ("natural-gas/pri/fut", "RNGWHHD", 1), "$/MMBtu"),
+    ("EUGAS", "European gas", "Energy", "Natural gas, Europe", None, "$/MMBtu"),
+    ("LNGASIA", "LNG Asia (Japan)", "Energy", "Liquefied natural gas", None, "$/MMBtu"),
+    ("UREA", "Urea", "Fertiliser", "Urea", None, "$/t"),
+    ("DAP", "DAP", "Fertiliser", "DAP", None, "$/t"),
+    ("POTASH", "Potash (KCl)", "Fertiliser", "Potassium chloride", None, "$/t"),
+    ("PROCK", "Phosphate rock", "Fertiliser", "Phosphate rock", None, "$/t"),
+    ("COPPER", "Copper", "Metals", "Copper", None, "$/t"),
+    ("NICKEL", "Nickel", "Metals", "Nickel", None, "$/t"),
+    ("WHEAT", "Wheat (US HRW)", "Food", "Wheat, US HRW", None, "$/t"),
+    ("MAIZE", "Maize", "Food", "Maize", None, "$/t"),
+    ("RICE", "Rice (Thai 5%)", "Food", "Rice, Thai 5%", None, "$/t"),
+    ("SOY", "Soybeans", "Food", "Soybeans", None, "$/t"),
 ]
 
-UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36"
 
-
-def get(url, timeout=12, tries=2):
+def get(url, timeout=30, tries=2, binary=False):
     err = None
     for k in range(tries):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                return r.read().decode("utf-8")
+                data = r.read()
+                return data if binary else data.decode("utf-8", "replace")
         except Exception as e:
             err = e
-            time.sleep(1.5 * (k + 1))
+            time.sleep(2 * (k + 1))
     raise err
 
 
-def from_fred(sid, mult):
-    text = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}&cosd={START}")
-    return parse(text, mult)
+# ---------------------------------------------------------------- World Bank Pink Sheet (monthly)
+def parse_pink_sheet(rows):
+    hdr_i = next(i for i, r in enumerate(rows) if any(isinstance(c, str) and c.strip().startswith("Crude oil, Brent") for c in r))
+    names = [re.sub(r"\*+", "", str(c or "")).strip() for c in rows[hdr_i]]
+    stamp = next((str(r[0]) for r in rows[:hdr_i] if r and r[0] and "Updated" in str(r[0])), "")
+    cols = {}
+    for r in rows[hdr_i + 2:]:
+        m = re.match(r"^(\d{4})M(\d{2})$", str(r[0] or ""))
+        if not m:
+            continue
+        d = f"{m.group(1)}-{m.group(2)}-01"
+        if d < START:
+            continue
+        for j, name in enumerate(names):
+            if not name or j >= len(r):
+                continue
+            try:
+                cols.setdefault(name, []).append((d, round(float(r[j]), 3)))
+            except (TypeError, ValueError):
+                pass  # "…" marks missing values
+    return cols, stamp
 
 
-def from_yahoo(sym, mult):
-    j = json.loads(get(f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(sym)}?range=2y&interval=1d"))
-    res = j["chart"]["result"][0]
-    out = {}
-    for t, c in zip(res["timestamp"], res["indicators"]["quote"][0]["close"]):
-        if c is not None:
-            out[datetime.fromtimestamp(t, timezone.utc).date().isoformat()] = round(c * mult, 3)
-    return sorted(out.items())
+def world_bank():
+    import openpyxl
+    page = get(WB_PAGE)
+    links = re.findall(r'https://thedocs\.worldbank\.org[^"\']*CMO-Historical-Data-Monthly\.xlsx', page)
+    if not links:
+        raise RuntimeError("Pink Sheet link not found on the World Bank page")
+    wb = openpyxl.load_workbook(io.BytesIO(get(links[0], timeout=60, binary=True)), read_only=True, data_only=True)
+    return parse_pink_sheet(list(wb["Monthly Prices"].iter_rows(values_only=True)))
 
 
-def parse(text, mult):
-    rows = []
-    for row in csv.reader(io.StringIO(text)):
-        if len(row) < 2 or not row[0][:4].isdigit():
-            continue  # header ("DATE" or "observation_date") or blank
-        try:
-            rows.append((row[0], round(float(row[1]) * mult, 3)))
-        except ValueError:
-            continue  # FRED marks missing days with "."
-    return rows
+def wb_series(cols, prefix):
+    for name, pts in cols.items():
+        if name.lower().startswith(prefix.lower()):
+            return pts
+    return None
 
 
+# ---------------------------------------------------------------- EIA API v2 (daily, optional key)
+def eia(route, series, mult, key):
+    q = urllib.parse.urlencode({
+        "api_key": key, "frequency": "daily", "data[0]": "value", "facets[series][]": series,
+        "start": START, "sort[0][column]": "period", "sort[0][direction]": "asc", "length": 5000,
+    })
+    j = json.loads(get(f"https://api.eia.gov/v2/{route}/data/?{q}"))
+    return [(r["period"], round(float(r["value"]) * mult, 3)) for r in j["response"]["data"] if r.get("value") is not None]
+
+
+# ---------------------------------------------------------------- summaries
 def thin(points, max_points=160):
-    """Keep sparklines light: weekly for daily series, all points for monthly."""
     if len(points) <= max_points:
-        return points
+        return [list(p) for p in points]
     out, last = [], None
     for d, v in points:
         wk = datetime.fromisoformat(d).isocalendar()[:2]
@@ -98,14 +127,14 @@ def value_on_or_before(points, day):
     return prior[-1] if prior else None
 
 
-def summarise(sid, label, unit, group, note, points):
+def summarise(key, label, unit, group, note, points, freq):
     latest_d, latest_v = points[-1]
-    pre = value_on_or_before(points, CLOSURE)
-    month_ago = (date.fromisoformat(latest_d) - timedelta(days=30)).isoformat()
-    m1 = value_on_or_before(points, month_ago)
+    pre = value_on_or_before(points, CLOSURE if freq == "daily" else "2026-02-01")
+    back = (date.fromisoformat(latest_d) - timedelta(days=30 if freq == "daily" else 28)).isoformat()
+    m1 = value_on_or_before(points, back)
     return {
-        "id": sid, "label": label, "unit": unit, "group": group, "note": note,
-        "latest": latest_v, "date": latest_d, "prewar": pre,
+        "id": key, "label": label, "unit": unit, "group": group, "note": note, "freq": freq,
+        "latest": latest_v, "date": latest_d if freq == "daily" else latest_d[:7], "prewar": pre,
         "chg_prewar": round(latest_v / pre - 1, 4) if pre else None,
         "chg_1m": round(latest_v / m1 - 1, 4) if m1 else None,
         "points": thin(points), "stale": False,
@@ -119,43 +148,56 @@ def main():
             old = {s["id"]: s for s in json.loads(OUT.read_text())["series"]}
         except Exception:
             pass
-    out, ok = [], 0
-    for key, label, group, providers in SERIES:
+    try:
+        cols, stamp = world_bank()
+        print(f"World Bank Pink Sheet: {len(cols)} columns. {stamp}", flush=True)
+    except Exception as e:
+        cols, stamp = {}, ""
+        print(f"World Bank Pink Sheet failed: {e}", flush=True)
+    key = os.environ.get("EIA_API_KEY", "").strip()
+    if not key:
+        print("No EIA_API_KEY secret, so daily prices are skipped (monthly World Bank data still used).", flush=True)
+
+    out, fresh, sources = [], 0, set()
+    for k, label, group, wb_name, eia_spec, unit in SERIES:
         got = None
-        for src, sym, mult, unit, note in providers:
+        if key and eia_spec:
             try:
-                pts = from_yahoo(sym, mult) if src == "yahoo" else from_fred(sym, mult)
-                if len(pts) < 5:
-                    raise ValueError("too few observations")
-                got = summarise(key, label, unit, group, f"{note} ({sym})", pts)
-                print(f"  {key:<8} {src:<5} {sym:<13} {pts[-1][0]}  {pts[-1][1]}", flush=True)
-                break
+                pts = eia(*eia_spec, key)
+                if len(pts) > 5:
+                    got = summarise(k, label, unit, group, "EIA daily spot", pts, "daily"); sources.add("EIA")
             except Exception as e:
-                print(f"  {key:<8} {src:<5} {sym:<13} failed: {str(e)[:80]}", flush=True)
+                print(f"  {k}: EIA failed ({str(e)[:80]})", flush=True)
+        if not got and wb_name and cols:
+            pts = wb_series(cols, wb_name)
+            if pts and len(pts) > 3:
+                got = summarise(k, label, unit, group, "World Bank monthly average", pts, "monthly"); sources.add("World Bank")
         if got:
-            out.append(got); ok += 1
-        elif key in old:
-            out.append(old[key] | {"stale": True})
+            out.append(got); fresh += 1
+            print(f"  {k:<8} {got['date']}  {got['latest']}  ({got['note']})", flush=True)
+        elif k in old:
+            out.append(old[k] | {"stale": True})
+
     by = {s["id"]: s for s in out}
-    if "DIESEL" in by and "BRENT" in by and not by["DIESEL"]["stale"] and not by["BRENT"]["stale"]:
+    if all(i in by and by[i]["freq"] == "daily" and not by[i]["stale"] for i in ("DIESEL", "BRENT")):
         b = dict(map(tuple, by["BRENT"]["points"]))
         pts = [(d, round(v - b[d], 2)) for d, v in by["DIESEL"]["points"] if d in b]
-        if len(pts) >= 5:
-            s = summarise("CRACK", "Diesel crack vs Brent", "$/bbl", "Energy", "Derived: ULSD minus Brent", pts)
+        if len(pts) > 5:
+            s = summarise("CRACK", "Diesel crack vs Brent", "$/bbl", "Energy", "Derived: ULSD minus Brent", pts, "daily")
             s["chg_prewar"] = round(s["latest"] - s["prewar"], 2) if s["prewar"] is not None else None
-            s["chg_1m"] = None
-            s["absolute_change"] = True
+            s["chg_1m"], s["absolute_change"] = None, True
             out.insert(3, s)
-    if ok == 0:
-        print("All downloads failed. Keeping the previous feed.", flush=True)
+
+    if fresh == 0:
+        print("Nothing downloaded. Keeping the previous feed.", flush=True)
         return 0
     OUT.write_text(json.dumps({
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
         "closure": CLOSURE,
-        "source": "Exchange futures via Yahoo Finance and FRED (EIA, IMF)",
+        "source": " and ".join(sorted(sources, reverse=True)) + (f" ({stamp.strip()})" if stamp else ""),
         "series": out,
     }, separators=(",", ":")))
-    print(f"Wrote data/{OUT.name}: {ok}/{len(SERIES)} series fresh", flush=True)
+    print(f"Wrote data/{OUT.name}: {fresh}/{len(SERIES)} series fresh", flush=True)
     return 0
 
 

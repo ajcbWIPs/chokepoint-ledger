@@ -23,9 +23,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Pull live prices
-        run: python -u scripts/update_feed.py
-        timeout-minutes: 6
+      - name: Pull live prices (World Bank monthly, plus EIA daily if the EIA_API_KEY secret is set)
+        run: |
+          pip install -q openpyxl
+          python -u scripts/update_feed.py
+        env:
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+        timeout-minutes: 5
         continue-on-error: true
       - name: Save the feed to the repo (history and local dev)
         run: |

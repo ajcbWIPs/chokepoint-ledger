@@ -41,9 +41,12 @@ Flags marked `EST` are model estimates. Country oil balances are approximate pre
 
 ### Live data feed
 
-`scripts/update_feed.py` pulls daily and monthly prices from FRED (no API key): Brent, WTI, NY Harbor diesel, Henry Hub, Asian LNG, European gas, copper, nickel, wheat, maize, rice and soybeans, plus a derived diesel crack versus Brent. It writes `data/live.json`, which drives the Live prices strip and the Brent and Diesel headline tiles.
+`scripts/update_feed.py` writes `data/live.json`, which drives the Live prices strip and the Brent and Diesel headline tiles. The Pages workflow runs it on every push and daily at 08:17 Sydney time, commits the refreshed feed and redeploys.
 
-The Pages workflow runs it on every push and daily at 08:17 Sydney time, commits the refreshed feed and redeploys. Run it by hand from Actions > "Refresh data feed and deploy to GitHub Pages" > Run workflow. If FRED is down, the last good values stay up with a STALE tag.
+* **World Bank Pink Sheet** (no key, monthly averages, updated early each month): Brent, WTI, Henry Hub, European gas, Asian LNG, urea, DAP, potash, phosphate rock, copper, nickel, wheat, maize, rice, soybeans.
+* **EIA daily spot** (optional, free key): Brent, WTI, NY Harbor diesel and Henry Hub every trading day, plus the diesel crack versus Brent. Register at eia.gov/opendata/register.php, then add the key as a repo secret named `EIA_API_KEY` (Settings > Secrets and variables > Actions).
+
+Yahoo Finance and FRED's CSV downloads both block GitHub's servers, which is why they aren't used. If a source fails, the last good values stay up with a STALE tag. Run the refresh by hand from Actions > "Refresh data feed and deploy to GitHub Pages" > Run workflow.
 
 ### Updating the numbers
 
