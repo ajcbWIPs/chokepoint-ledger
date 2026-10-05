@@ -1,0 +1,29 @@
+name: Network diagnostic (temporary)
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          {
+          for u in "https://query1.finance.yahoo.com/v8/finance/chart/BZ%3DF?range=5d&interval=1d" \
+                   "https://query2.finance.yahoo.com/v8/finance/chart/BZ%3DF?range=5d&interval=1d" \
+                   "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILBRENTEU&cosd=2026-09-01" \
+                   "https://stooq.com/q/d/l/?s=cb.f&i=d" \
+                   "https://api.eia.gov/" ; do
+            echo "== $u"
+            curl -sS -A "Mozilla/5.0 (X11; Linux x86_64) Chrome/128" --max-time 15 -o body.txt -w "http %{http_code} time %{time_total}s\n" "$u" 2>&1
+            head -c 300 body.txt; echo
+          done
+          echo "== python urllib"
+          timeout 40 python3 -c "
+          import urllib.request,time;t=time.time()
+          r=urllib.request.urlopen(urllib.request.Request('https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?range=5d&interval=1d',headers={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) Chrome/128'}),timeout=12)
+          print(r.status, len(r.read()), round(time.time()-t,1),'s')" 2>&1 | tail -2
+          } > diag.txt
+          git config user.name diag-bot; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b diag-results; git add -f diag.txt; git commit -qm diag; git push -f origin diag-results
