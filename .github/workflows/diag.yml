@@ -12,16 +12,14 @@ jobs:
           set +e
           {
           B=https://api.db.nomics.world/v22
-          for q in "brent%20spot" "wti%20spot" "ultra-low%20sulfur%20diesel%20new%20york%20harbor" "heating%20oil%20new%20york" ; do
-            echo "== PET $q"
-            curl -sS --max-time 20 "$B/series/EIA/PET?q=$q&limit=15" | jq -r '.series.docs[] | "\(.series_code) | \(.series_name)"' | head -15
+          for c in PET/RBRTE.D PET/RWTC.D PET/EER_EPD2DXL0_PF4_Y35NY_DPG.D NG/RNGWHHD.D; do
+            echo "== EIA $c"; curl -sS --max-time 20 "$B/series/EIA/$c?observations=1" | jq -r '.series.docs[0] | "last \(.period[-1]) = \(.value[-1]) | n=\(.period|length)"'
           done
-          echo "== NG henry hub"
-          curl -sS --max-time 20 "$B/series/EIA/NG?q=henry%20hub&limit=10" | jq -r '.series.docs[] | "\(.series_code) | \(.series_name)"' | head -10
-          for c in PCOPP PNICK PWHEAMT PMAIZMT PRICENPQ PSOYB PNGASJP PNGASEU POILBRE; do
-            echo "== IMF $c"; curl -sS --max-time 20 "$B/series/IMF/PCPS/M.W00.$c.USD?observations=1" | jq -r '.series.docs[0] | "\(.series_name) | last \(.period[-1]) = \(.value[-1]) | n=\(.period|length)"'
-          done
-          echo "== sample daily brent obs"
+          echo "== WB datasets"
+          curl -sS --max-time 20 "$B/search?q=commodity%20prices%20pink%20sheet&limit=8" | jq -r '.results.docs[] | "\(.provider_code)/\(.code) | \(.name) | indexed \(.indexed_at)"'
+          curl -sS --max-time 20 "$B/datasets/WB?limit=60" | jq -r '.datasets.docs[] | "\(.code) | \(.name) | \(.converted_at)"' | grep -i -E "commod|pink|cmo" | head
+          echo "== worldbank pink sheet page"
+          curl -sSL --max-time 20 -A "Mozilla/5.0" "https://www.worldbank.org/en/research/commodity-markets" | grep -o 'https://thedocs.worldbank.org[^"]*Monthly[^"]*xlsx' | head -3
           echo "== dns"; getent hosts query1.finance.yahoo.com fred.stlouisfed.org; echo "== env"; env | grep -i proxy
           echo "== python urllib"
           timeout 40 python3 -c "
