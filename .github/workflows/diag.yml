@@ -9,6 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
+          set +e
           {
           for u in "https://query1.finance.yahoo.com/v8/finance/chart/BZ%3DF?range=5d&interval=1d" \
                    "https://query2.finance.yahoo.com/v8/finance/chart/BZ%3DF?range=5d&interval=1d" \
@@ -16,9 +17,10 @@ jobs:
                    "https://stooq.com/q/d/l/?s=cb.f&i=d" \
                    "https://api.eia.gov/" ; do
             echo "== $u"
-            curl -sS -A "Mozilla/5.0 (X11; Linux x86_64) Chrome/128" --max-time 15 -o body.txt -w "http %{http_code} time %{time_total}s\n" "$u" 2>&1
+            curl -sS -A "Mozilla/5.0 (X11; Linux x86_64) Chrome/128" --max-time 15 -o body.txt -w "http %{http_code} time %{time_total}s\n" "$u" 2>&1 || echo "curl exit $?"
             head -c 300 body.txt; echo
           done
+          echo "== dns"; getent hosts query1.finance.yahoo.com fred.stlouisfed.org; echo "== env"; env | grep -i proxy
           echo "== python urllib"
           timeout 40 python3 -c "
           import urllib.request,time;t=time.time()
