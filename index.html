@@ -75,6 +75,7 @@
   <nav class="tabs" role="tablist" aria-label="Analysis">
     <button class="tab" role="tab" id="tab-lines" aria-selected="true" aria-controls="p-lines">Supply lines</button>
     <button class="tab" role="tab" id="tab-rank" aria-selected="false" aria-controls="p-rank">Constraint ranking</button>
+    <button class="tab" role="tab" id="tab-crops" aria-selected="false" aria-controls="p-crops">Staple crops</button>
     <button class="tab" role="tab" id="tab-div" aria-selected="false" aria-controls="p-div">Spot vs producers</button>
     <button class="tab" role="tab" id="tab-bal" aria-selected="false" aria-controls="p-bal">Refining balance</button>
     <button class="tab" role="tab" id="tab-method" aria-selected="false" aria-controls="p-method">Method and sources</button>
@@ -93,6 +94,21 @@
         <div class="callout" id="rankRead"></div>
       </div>
     </div>
+  </section>
+
+  <section class="panel" id="p-crops" role="tabpanel" aria-labelledby="tab-crops" hidden>
+    <p class="callout" id="cropAnswer"></p>
+    <div class="crop-grid">
+      <div class="tscroll"><div id="cropTable"></div></div>
+      <div class="crop-detail" id="cropDetail"></div>
+    </div>
+    <div>
+      <h3>Where the rice input chain bottlenecks</h3>
+      <p class="note" style="margin:4px 0 10px">From gas well to paddy. Status reflects early October 2026. Prices update daily from the live feed.</p>
+      <ol class="chain" id="cropChain"></ol>
+    </div>
+    <div class="chart" id="cropCal"></div>
+    <p class="note">Fertiliser use by crop from IFA (2014/15), production from USDA for the same season. Factor scores are judgement calls from the cited reporting. Click a row for detail.</p>
   </section>
 
   <section class="panel" id="p-div" role="tabpanel" aria-labelledby="tab-div" hidden>

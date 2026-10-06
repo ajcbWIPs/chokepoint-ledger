@@ -14,7 +14,7 @@
 
   const state = {
     layer: "none", group: "All", commodity: "All", scen: 0, sel: null, tab: "lines",
-    sortKey: "v", sortDir: -1,
+    sortKey: "v", sortDir: -1, highlight: null, crop: "Rice",
     rw: { choke: 0.25, conc: 0.15, subst: 0.15, buffer: 0.15, disr: 0.3 },
     cw: { choke: 0.2, conc: 0.12, lead: 0.15, buffer: 0.15, policy: 0.1, inel: 0.1, now: 0.18 }
   };
@@ -50,7 +50,7 @@
     for (const k in state.cw) { v += state.cw[k] * f[k]; sw += state.cw[k]; }
     return { v: sw ? v / sw : 0, f };
   }
-  const visibleRoute = (r) => (state.group === "All" || r.g === state.group) && (state.commodity === "All" || r.c === state.commodity);
+  const visibleRoute = (r) => (state.highlight ? state.highlight.lanes.includes(r.id) : (state.group === "All" || r.g === state.group) && (state.commodity === "All" || r.c === state.commodity));
 
   // ---------- tooltip ----------
   const tip = $("#tip");
@@ -106,7 +106,7 @@
   }
   fetch("data/live.json", { cache: "no-store" })
     .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-    .then((L) => { L.byId = Object.fromEntries(L.series.map((s) => [s.id, s])); drawTape(L); drawLive(L); window.LIVE = L; })
+    .then((L) => { L.byId = Object.fromEntries(L.series.map((s) => [s.id, s])); window.LIVE = L; drawTape(L); drawLive(L); drawCrops(); })
     .catch(() => {}); // no feed (opened from disk, or first deploy pending): page uses the curated figures
 
   // ---------- map ----------
@@ -131,7 +131,7 @@
     zoomK = e.transform.k;
     root.attr("transform", e.transform);
     chokeG.selectAll("circle").attr("r", 5.5 / zoomK);
-    chokeG.selectAll("text").attr("font-size", 10 / zoomK).attr("dx", 8 / zoomK).attr("dy", 3.5 / zoomK);
+    chokeG.selectAll("text").style("font-size", 10 / zoomK + "px").attr("dx", 8 / zoomK).attr("dy", 3.5 / zoomK);
   });
   svg.call(zoom);
   function zoomTo(lonlat, k, ms = 1200) {
@@ -183,7 +183,7 @@
       .on("mouseleave", hideTip).on("click", (e, d) => select(d.id));
     sel.select("circle").attr("r", 5.5 / zoomK).attr("fill", (d) => css(STATUS_VAR[chokeStatus(d)]));
     sel.select("text").text((d) => d.name.replace(" / SUMED", "").replace("East-West Pipeline / ", ""))
-      .attr("font-size", 10 / zoomK).attr("dx", 8 / zoomK).attr("dy", 3.5 / zoomK)
+      .style("font-size", 10 / zoomK + "px").attr("dx", 8 / zoomK).attr("dy", 3.5 / zoomK)
       .style("display", (d) => (["hormuz", "bab", "malacca", "suez", "panama", "turkish", "cape", "yanbu"].includes(d.id) ? null : "none"));
   }
 
@@ -234,19 +234,28 @@
   const groupsEl = $("#groups");
   function drawGroups() {
     groupsEl.innerHTML = [{ k: "All" }, ...GROUPS].map((g) => `<button type="button" class="chip" data-g="${g.k}" aria-pressed="${state.group === g.k}">${g.v ? `<i style="background:${css(g.v)}"></i>` : ""}${g.k}</button>`).join("");
-    groupsEl.querySelectorAll(".chip").forEach((b) => (b.onclick = () => { state.group = b.dataset.g; state.commodity = "All"; state.sel = null; refresh(); }));
+    groupsEl.querySelectorAll(".chip").forEach((b) => (b.onclick = () => { state.group = b.dataset.g; state.commodity = "All"; state.sel = null; state.highlight = null; refresh(); }));
   }
   function drawCommoditySelect() {
     const list = [...new Set(D.routes.filter((r) => state.group === "All" || r.g === state.group).map((r) => r.c))];
     $("#commodity").innerHTML = `<option value="All">All in group</option>` + list.map((c) => `<option ${c === state.commodity ? "selected" : ""}>${c}</option>`).join("");
   }
-  $("#commodity").onchange = (e) => { state.commodity = e.target.value; state.sel = null; refresh(); };
+  $("#commodity").onchange = (e) => { state.commodity = e.target.value; state.sel = null; state.highlight = null; refresh(); };
   $("#layer").onchange = (e) => { state.layer = e.target.value; drawLayer(); };
   $("#scen").oninput = (e) => { state.scen = +e.target.value / 100; refresh(); };
 
   function drawDetail() {
     const el = $("#detail");
     const id = state.sel;
+    if (state.highlight && !id) {
+      const lanes = D.routes.filter((r) => state.highlight.lanes.includes(r.id)).map((r) => ({ r, v: routeV(r).v })).sort((a, b) => b.v - a.v);
+      el.innerHTML = `<span class="eyebrow">Input lanes for ${state.highlight.crop}</span>
+        ${lanes.map((x) => `<button type="button" class="btn" style="text-align:left" data-r="${x.r.id}"><b>${x.r.c}</b> <span class="mono">${x.v.toFixed(2)}</span><br><span class="note">${x.r.from} to ${x.r.to}</span></button>`).join("")}
+        <button class="btn" type="button" id="clearHl">Show all supply lines</button>`;
+      el.querySelectorAll("[data-r]").forEach((b) => (b.onclick = () => select(b.dataset.r)));
+      $("#clearHl").onclick = () => { state.highlight = null; refresh(); };
+      return;
+    }
     if (id && id.startsWith("r") && D.routes.find((r) => r.id === id)) {
       const r = D.routes.find((x) => x.id === id), s = routeV(r);
       const rc = riskColor();
@@ -327,6 +336,137 @@
     $("#rankRead").innerHTML = `<p><strong>Most constrained now:</strong> ${top3.join(", ")}.</p><p style="margin-top:8px"><strong>Still constrained if Hormuz reopens:</strong> ${structural.map((s) => `${s.c} (${s.v.toFixed(2)})`).join(", ")}. These depend on mine lead times, processing concentration or damaged capacity, not on the strait.</p><p style="margin-top:8px">Crude ranks below diesel. The barrel shortage is being absorbed by stocks and the Americas, while refining capacity and Gulf product exports are the real bottleneck.</p>`;
   }
 
+  // ---------- staple crop sensitivity ----------
+  const C = D.crops;
+  const STATUS_TXT = { severe: "severe", elevated: "elevated", watch: "watch", eased: "eased", open: "open" };
+  function cropScore(c) {
+    let v = 0, sw = 0;
+    for (const k in C.weights) { v += C.weights[k] * c[k]; sw += C.weights[k]; }
+    return v / sw;
+  }
+  function liveSeries(id) { return window.LIVE && window.LIVE.byId[id]; }
+  function monthlyIndex(id) {
+    // monthly values indexed to Feb 2026 = 100, from the live feed or the embedded fallback
+    const s = liveSeries(id);
+    const pts = s ? s.points.map(([d, v]) => [d.slice(0, 7), v]) : (C.fallback[id] || []);
+    const base = (pts.find((p) => p[0] === "2026-02") || [])[1];
+    if (!base) return [];
+    return pts.filter((p) => p[0] >= "2026-01").map(([m, v]) => ({ m: (+m.slice(0, 4) - 2026) * 12 + (+m.slice(5, 7) - 1), v: (v / base) * 100, raw: v }));
+  }
+  function showCropOnMap(crop) {
+    const c = C.list.find((x) => x.c === crop);
+    state.highlight = { crop, lanes: c.lanes }; state.sel = null; state.group = "All"; state.commodity = "All";
+    refresh();
+    document.querySelector(".desk").scrollIntoView({ behavior: "smooth", block: "start" });
+    // frame the highlighted lanes
+    const pts = D.routes.filter((r) => c.lanes.includes(r.id)).flatMap((r) => r.path.map(coord)).map((p) => proj(p));
+    const [x0, x1] = d3.extent(pts, (p) => p[0]), [y0, y1] = d3.extent(pts, (p) => p[1]);
+    const k = Math.max(1, Math.min(4, 0.8 * Math.min(W / (x1 - x0 || 1), H / (y1 - y0 || 1))));
+    const t = d3.zoomIdentity.translate(W / 2, H / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+    svg.transition().duration(1200).call(zoom.transform, t);
+  }
+  function drawCrops() {
+    const rows = C.list.map((c) => ({ c, v: cropScore(c) })).sort((a, b) => b.v - a.v);
+    const top = rows[0].c;
+    const keys = Object.keys(C.weights);
+    const heat = (v) => `color-mix(in srgb, var(--seq-vul) ${Math.round(v * 72)}%, transparent)`;
+    const sc = d3.scaleLinear().domain([0, 1]).range([0, 100]);
+    const npkPerT = (c) => (c.npkShare * 181.9 * 1000) / c.prod;
+    const nPerT = (c) => (c.nShare * 102.5 * 1000) / c.prod;
+    const chg = (c) => { const s = liveSeries(c.live); return s && s.chg_prewar != null ? d3.format("+.0%")(s.chg_prewar) : "n/a"; };
+
+    $("#cropAnswer").innerHTML = `<strong>${top.c} is the staple most sensitive to the input shock</strong> (score ${rows[0].v.toFixed(2)}, next ${rows[1].c.c} at ${rows[1].v.toFixed(2)}). It uses the most fertiliser per tonne of food, almost 90% of it grows in Asia on Gulf urea and DAP, Bangladesh's boro crop was top-dressed during the price peak, and only about 11% of rice is traded, so small losses move prices. <strong>The bottleneck has moved.</strong> In March to May it was urea through Hormuz. Urea is now back near pre-war, but DAP keeps climbing because phosphate needs Gulf sulphur. Rabi sowing in India and Bangladesh from October is the next pinch point.`;
+
+    $("#cropTable").innerHTML = `<table class="heat"><thead><tr><th>Crop</th>${keys.map((k) => `<th class="num" title="weight ${C.weights[k]}">${C.labels[k]}</th>`).join("")}<th>Sensitivity</th><th class="num">kg N / t</th><th class="num">Price since closure</th></tr></thead>
+      <tbody>${rows.map(({ c, v }) => `<tr data-c="${c.c}" class="${state.crop === c.c ? "sel" : ""}"><td><b>${c.c}</b></td>${keys.map((k) => `<td class="num hc" style="background:${heat(c[k])}">${c[k].toFixed(2)}</td>`).join("")}
+        <td><div class="scorecell"><span class="mono"><b>${v.toFixed(2)}</b></span><div class="vbar"><span style="width:${sc(v)}%;background:var(--seq-vul)"></span></div></div></td>
+        <td class="num">${nPerT(c).toFixed(0)}</td><td class="num">${chg(c)}</td></tr>`).join("")}</tbody></table>`;
+    $("#cropTable").querySelectorAll("tbody tr").forEach((tr) => (tr.onclick = () => { state.crop = tr.dataset.c; drawCrops(); }));
+
+    const c = C.list.find((x) => x.c === state.crop);
+    $("#cropDetail").innerHTML = `<span class="eyebrow">${c.c}</span><p>${c.why}</p>
+      <dl><dt>Bottleneck</dt><dd>${c.where}</dd>
+      <dt>Share of world N</dt><dd>${pct(c.nShare)} (IFA 2014/15)</dd>
+      <dt>Fertiliser per tonne</dt><dd>${npkPerT(c).toFixed(0)} kg N+P+K, ${nPerT(c).toFixed(0)} kg N</dd>
+      <dt>Traded share</dt><dd>${pct(c.trade)} of output</dd></dl>
+      <button class="btn" type="button" id="cropMap">Show ${c.c.toLowerCase()} input lanes on the map</button>`;
+    $("#cropMap").onclick = () => showCropOnMap(c.c);
+
+    // input chain
+    const urea = monthlyIndex("UREA"), dap = monthlyIndex("DAP");
+    const peak = (arr) => arr.reduce((m, p) => (p.raw > m.raw ? p : m), arr[0] || { raw: 0 });
+    const liveNote = (id) => {
+      const s = id === "UREA" ? urea : dap; if (!s.length) return "";
+      const last = s[s.length - 1], pk = peak(s);
+      return `<span class="mono chain-live">${id === "UREA" ? "Urea" : "DAP"} $${d3.format(",.0f")(last.raw)}/t${pk.m !== last.m ? `, peak $${d3.format(",.0f")(pk.raw)}` : ", at its high"}. ${d3.format("+.0f")(last.v - 100)}% vs Feb</span>`;
+    };
+    $("#cropChain").innerHTML = C.chain.map((s, i) => `<li class="node st-${s.status}">
+      <span class="pill st-${s.status}">${STATUS_TXT[s.status]}</span>${s.binding ? `<span class="binding">binding ${s.binding}</span>` : ""}
+      <b>${s.n}</b><span class="nd">${s.d}</span>${s.live ? liveNote(s.live) : ""}${s.est ? ' <span class="est">EST</span>' : ""}</li>`).join("");
+
+    drawCalendar(urea, dap);
+  }
+
+  function drawCalendar(urea, dap) {
+    const host = d3.select("#cropCal").html("");
+    host.append("h3").text("Who bought fertiliser at the peak").style("margin-bottom", "4px");
+    host.append("p").attr("class", "note").text("Lines: World Bank monthly prices indexed to Feb 2026 = 100. Bars: fertiliser windows, shaded by the average price index paid in that window. Hatched months have not happened yet.");
+    const months = 15, w = 1000, left = 250, right = 60, top = 16, lineH = 140, rowH = 24, gap = 20;
+    const rows = C.windows;
+    const h = top + lineH + gap + rows.length * rowH + 30;
+    const x = d3.scaleLinear().domain([0, months]).range([left, w - right]);
+    const all = urea.concat(dap);
+    const y = d3.scaleLinear().domain([Math.min(80, d3.min(all, (d) => d.v) || 80), Math.max(200, d3.max(all, (d) => d.v) || 200)]).nice().range([top + lineH, top]);
+    const s = host.append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("role", "img").attr("aria-label", "Fertiliser price index and crop application windows");
+    const defs = s.append("defs");
+    defs.append("pattern").attr("id", "ahead").attr("width", 6).attr("height", 6).attr("patternUnits", "userSpaceOnUse").attr("patternTransform", "rotate(45)")
+      .append("line").attr("x1", 0).attr("y1", 0).attr("x2", 0).attr("y2", 6).attr("stroke", css("--muted")).attr("stroke-width", 1.5);
+    const lastM = d3.max(all, (d) => d.m) ?? 8;
+    // future shading
+    s.append("rect").attr("x", x(lastM + 1)).attr("y", top).attr("width", x(months) - x(lastM + 1)).attr("height", h - top - 30).attr("fill", "url(#ahead)").attr("opacity", 0.18);
+    // grid and month labels
+    const mNames = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+    s.append("g").attr("class", "grid").selectAll("line").data(y.ticks(4)).join("line").attr("x1", left).attr("x2", w - right).attr("y1", y).attr("y2", y);
+    s.append("g").selectAll("text").data(y.ticks(4)).join("text").attr("x", left - 6).attr("y", (d) => y(d) + 4).attr("text-anchor", "end").text((d) => d);
+    s.append("g").selectAll("text").data(d3.range(months)).join("text").attr("x", (m) => x(m + 0.5)).attr("y", h - 14).attr("text-anchor", "middle").text((m) => mNames[m % 12]);
+    s.append("text").attr("x", x(0)).attr("y", h - 1).text("2026");
+    s.append("text").attr("x", x(12)).attr("y", h - 1).text("2027");
+    s.append("line").attr("x1", x(12)).attr("x2", x(12)).attr("y1", top).attr("y2", h - 26).attr("stroke", css("--line"));
+    // closure marker
+    s.append("line").attr("x1", x(1.9)).attr("x2", x(1.9)).attr("y1", top).attr("y2", top + lineH).attr("stroke", css("--s-severe")).attr("stroke-dasharray", "3 3");
+    s.append("text").attr("x", x(1.9) + 4).attr("y", top + 10).text("Hormuz closes").style("fill", css("--s-severe"));
+    // price lines
+    const line = d3.line().x((d) => x(d.m + 0.5)).y((d) => y(d.v)).curve(d3.curveMonotoneX);
+    [[urea, "--ink", "Urea"], [dap, "--accent", "DAP"]].forEach(([arr, col, name]) => {
+      if (!arr.length) return;
+      s.append("path").attr("d", line(arr)).attr("fill", "none").attr("stroke", css(col)).attr("stroke-width", 2);
+      const l = arr[arr.length - 1];
+      s.append("circle").attr("cx", x(l.m + 0.5)).attr("cy", y(l.v)).attr("r", 3.5).attr("fill", css(col));
+      s.append("text").attr("class", "lbl").attr("x", x(l.m + 0.5) + 7).attr("y", y(l.v) + 4).text(`${name} ${l.v.toFixed(0)}`);
+    });
+    // hover points
+    s.append("g").selectAll("rect").data(d3.range(lastM + 1)).join("rect").attr("x", (m) => x(m)).attr("width", x(1) - x(0)).attr("y", top).attr("height", lineH).attr("fill", "transparent")
+      .on("mousemove", (e, m) => { const u = urea.find((d) => d.m === m), p = dap.find((d) => d.m === m); showTip(e, `<b>${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m % 12]} ${2026 + Math.floor(m / 12)}</b><br><span class="mono">${u ? `urea $${u.raw.toFixed(0)}/t (index ${u.v.toFixed(0)})` : ""}<br>${p ? `DAP $${p.raw.toFixed(0)}/t (index ${p.v.toFixed(0)})` : ""}</span>`); })
+      .on("mouseleave", hideTip);
+    // window rows
+    const pay = d3.scaleLinear().domain([95, 180]).range([css("--seq-lo"), css("--seq-vul")]).interpolate(d3.interpolateLab).clamp(true);
+    const y0 = top + lineH + gap;
+    const g = s.append("g").selectAll("g").data(rows).join("g").attr("transform", (d, i) => `translate(0,${y0 + i * rowH})`);
+    g.each(function (d) {
+      const series = /DAP|P and K/.test(d.n) ? dap : urea;
+      const seen = series.filter((p) => p.m >= d.m[0] && p.m <= d.m[1]);
+      d.idx = seen.length ? d3.mean(seen, (p) => p.v) : null;
+      d.input = series === dap ? "DAP" : "urea";
+      d.partial = seen.length && d.m[1] > lastM;
+    });
+    g.append("text").attr("class", "lbl").attr("x", left - 8).attr("y", rowH / 2 + 4).attr("text-anchor", "end").style("font-size", "11px").text((d) => d.n);
+    g.append("rect").attr("x", (d) => x(d.m[0])).attr("width", (d) => x(d.m[1] + 1) - x(d.m[0])).attr("y", 3).attr("height", rowH - 6).attr("rx", 3)
+      .attr("fill", (d) => (d.idx == null ? "url(#ahead)" : pay(d.idx))).attr("stroke", (d) => (d.idx == null ? css("--muted") : "none"))
+      .on("mousemove", (e, d) => showTip(e, `<b>${d.n}</b><br><span class="mono">${d.idx == null ? "ahead: price not known yet" : `average ${d.input} index ${d.idx.toFixed(0)}${d.partial ? " so far" : ""} (Feb 2026 = 100)`}</span>`))
+      .on("mouseleave", hideTip);
+    g.append("text").attr("x", (d) => x(d.m[1] + 1) + 5).attr("y", rowH / 2 + 4).text((d) => (d.idx == null ? "ahead" : `${d.idx.toFixed(0)}${d.partial ? "*" : ""}`));
+  }
+
   // ---------- refining balance ----------
   function drawBal() {
     const rows = Object.values(D.countries).map((c) => ({ n: c.n, v: c.ref - c.cons })).filter((r) => Math.abs(r.v) >= 0.2).sort((a, b) => b.v - a.v);
@@ -373,14 +513,14 @@
     $("#scenNote").textContent = state.scen === 0 ? "Current state, early Oct 2026" : state.scen === 1 ? "Strait fully reopened, damage and lead times unchanged" : "Partial reopening";
     drawGroups(); drawCommoditySelect(); drawRoutes(); drawChokes(); drawDetail(); drawTable(); drawRank(); drawLayer();
   }
-  drawWeights(); drawBal(); refresh();
+  drawWeights(); drawBal(); refresh(); drawCrops();
   if (location.hash === "#capture") document.body.classList.add("capture");
   const tabHash = location.hash.replace("#", "");
-  if (["lines", "rank", "div", "bal", "method"].includes(tabHash)) setTab(tabHash);
+  if (["lines", "rank", "crops", "div", "bal", "method"].includes(tabHash)) setTab(tabHash);
 
   // Repaint colours when the theme changes
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawBal(); refresh(); });
-  new MutationObserver(() => { drawBal(); refresh(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawBal(); refresh(); drawCrops(); });
+  new MutationObserver(() => { drawBal(); refresh(); drawCrops(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
   // ---------- scene API used by the video pipeline (video/capture.py) ----------
   window.setScene = async (o = {}) => {
@@ -395,6 +535,8 @@
     if (o.commodity !== undefined) state.commodity = o.commodity;
     if (o.scen !== undefined) { state.scen = o.scen; $("#scen").value = Math.round(o.scen * 100); }
     if (o.select !== undefined) state.sel = o.select;
+    if (o.highlightCrop !== undefined) state.highlight = o.highlightCrop ? { crop: o.highlightCrop, lanes: C.list.find((c) => c.c === o.highlightCrop).lanes } : null;
+    if (o.crop) state.crop = o.crop;
     if (o.tab) setTab(o.tab);
     if (o.view !== undefined) document.body.classList.toggle("view-panel", o.view === "panel");
     else if (o.tab) document.body.classList.add("view-panel");

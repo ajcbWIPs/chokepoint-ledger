@@ -28,6 +28,7 @@ To test locally: `python -m http.server` in this folder, then open `http://local
 | Chokepoints | Status and risk for Hormuz, Bab el-Mandeb, Suez, Malacca, Turkish Straits, Black Sea, Panama, Danish Straits, Taiwan Strait, Cape, Yanbu bypass |
 | Scenario slider | Reopens Hormuz from 0 to 100% and recomputes every score |
 | Constraint ranking | 16 commodities scored on 7 factors with adjustable weights. Ghost tick = score after a full reopening, which separates transient from structural shortages |
+| Staple crops | Which staple is most sensitive to input supply (rice, then maize, wheat, soybeans) on seven factors, the rice input chain from gas feedstock to paddy with the binding bottleneck flagged, and a timing chart of which crops bought fertiliser at the 2026 price peak (driven by the live World Bank feed) |
 | Spot vs producers | Why spot prices and producer earnings diverge, commodity by commodity |
 | Refining balance | Who can refine more than they burn |
 

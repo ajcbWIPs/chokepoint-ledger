@@ -108,6 +108,8 @@ window.DATA = {
     { id: "r36", c: "Copper cathode", g: "Metals", from: "DRC / Zambia", to: "China", path: ["daressalaam","indianS","sriLanka","andaman","malacca","singapore","scs","ningbo"], vol: 2.5, unit: "Mt Cu/yr", share: 0.2, chokes: ["malacca"], conc: 0.7, subst: 0.25, buffer: 30, disruption: 0.15, note: "SX-EW output depends on imported sulphuric acid", est: true },
     { id: "r37", c: "Nickel (MHP / NPI)", g: "Metals", from: "Indonesia (Morowali)", to: "China", path: ["morowali",[124.5,-1],[127,4],[125,15],"luzon","ningbo"], vol: 1.6, unit: "Mt Ni/yr", share: 0.55, chokes: [], conc: 0.85, subst: 0.3, buffer: 45, disruption: 0.3, note: "Lane open, but HPAL acid supply cut. Feedstock now over 50% of cost (Kpler).", src: ["kpler"], est: true },
     { id: "r38", c: "Rare earth magnets", g: "Metals", from: "China (Baotou)", to: "Japan / Korea / EU", path: ["baotou","tianjin",[121.5,38.3],[123,35],"ningbo","luzon","scs","singapore","malacca","andaman","sriLanka","arabSea","adenGulf","bab","redSea","suez","medE","medC","gibraltar","biscay","channel","rotterdam"], vol: 58, unit: "kt/yr", share: 0.85, chokes: ["malacca","bab","suez"], conc: 0.95, subst: 0.1, buffer: 60, disruption: 0.3, note: "April 2025 licensing on 7 heavy REEs still in force. Oct 2025 expansion paused until 10 Nov 2026.", src: ["ree"], est: true },
+    { id: "r40", c: "Urea", g: "Fertiliser", from: "Gulf", to: "Bangladesh / Sri Lanka", path: ["rasTanura","hormuz","gulfOman","arabSea","sriLanka","chittagong"], vol: 1.5, unit: "Mt/yr", share: 0.03, chokes: ["hormuz"], conc: 0.7, subst: 0.3, buffer: 30, disruption: 0.5, hormuz: true, note: "Feeds boro and aman rice. Diesel for irrigation pumps runs on the same lanes.", est: true },
+    { id: "r41", c: "Urea", g: "Fertiliser", from: "China (backstop)", to: "South / SE Asia", path: ["tianjin",[121.5,38.3],[123,35],"ningbo","luzon","scs","singapore","malacca","andaman","chittagong"], vol: 3.0, unit: "Mt/yr", share: 0.06, chokes: ["malacca"], conc: 0.8, subst: 0.4, buffer: 30, disruption: 0.1, note: "Policy valve, not a sea lane problem. Urea fell from $857 to about $400/t once China lifted its export ban.", src: ["ifpri"], est: true },
     { id: "r39", c: "Helium", g: "Metals", from: "Qatar", to: "Asia / Europe", path: ["rasLaffan","hormuz","gulfOman","arabSea","sriLanka","andaman","malacca","singapore","scs","luzon","korea"], vol: 60, unit: "mcm/yr", share: 0.3, chokes: ["hormuz"], conc: 0.85, subst: 0.2, buffer: 45, disruption: 0.6, hormuz: true, note: "By-product of Qatari LNG, so it stops when LNG stops", src: ["helium"], est: true }
   ],
 
@@ -216,6 +218,57 @@ window.DATA = {
       why: "Included as a control case. Concentrated supply does not mean constrained supply when the market is oversupplied.", src: [] }
   ],
 
+  // ---------- Staple crop sensitivity to agricultural input supply ----------
+  // Fertiliser use: IFA Assessment of Fertilizer Use by Crop, 2014/15 (N 102.5 Mt, NPK 181.9 Mt).
+  // Production for the same season (approx, USDA): wheat 728 Mt, maize 1,014 Mt, rice 478 Mt milled, soybeans 319 Mt.
+  // Factor scores are 0 to 1, higher = more sensitive. Scores marked est are judgement calls from the cited reporting.
+  crops: {
+    weights: { nInt: 0.2, gulf: 0.2, timing: 0.15, respond: 0.15, thin: 0.1, other: 0.1, fragile: 0.1 },
+    labels: { nInt: "Fertiliser per tonne", gulf: "Gulf input exposure", timing: "Hit the 2026 price spike", respond: "Yield response to N", thin: "Thin world market", other: "Diesel and other inputs", fragile: "Smallholder exposure" },
+    list: [
+      { c: "Rice", live: "RICE", nShare: 0.152, npkShare: 0.137, prod: 478, trade: 0.11, nInt: 0.93, gulf: 0.8, timing: 0.6, respond: 0.75, thin: 0.9, other: 0.9, fragile: 0.8,
+        why: "Most fertiliser per tonne of food, almost all of it urea. About 90% grown in Asia, where India takes about 70% of its imported urea and 42% of its DAP from the Gulf. Bangladesh's boro crop was top-dressed through the March to May urea peak while its irrigation pumps ran short of diesel. The kharif crop mostly missed the price peak but not the physical shortage, and the next rabi and boro seasons now face the highest DAP prices of the year. Only about 11% of rice is traded, so small production losses move prices fast.",
+        where: "Gulf urea and DAP through Hormuz into India, Bangladesh and Sri Lanka", lanes: ["r16", "r40", "r25", "r20", "r41"] },
+      { c: "Maize", live: "MAIZE", nShare: 0.178, npkShare: 0.162, prod: 1014, trade: 0.15, nInt: 0.51, gulf: 0.3, timing: 0.7, respond: 0.9, thin: 0.7, other: 0.4, fragile: 0.6,
+        why: "Largest single user of nitrogen and the strongest yield response: cutting N 10 to 15% or applying it 2 to 4 weeks late can cost 10 to 25% of yield. US growers bought spring nitrogen at the worst point of the spike, but the US and China make most of their own ammonia, which limits the physical risk. Brazil is the exception, importing 93% of its nitrogen ahead of the 2027 safrinha crop.",
+        where: "Brazil's import pipeline for the 2027 safrinha crop (Paranagua, Russian export quotas, Hormuz)", lanes: ["r17", "r29", "r28"] },
+      { c: "Wheat", live: "WHEAT", nShare: 0.182, npkShare: 0.153, prod: 728, trade: 0.27, nInt: 0.73, gulf: 0.35, timing: 0.3, respond: 0.6, thin: 0.4, other: 0.5, fragile: 0.4,
+        why: "Fertiliser intensive, but the big exporters (Russia, EU, US, Canada) make their own nitrogen and most top-dressing was done before the spike. Wheat prices are up because of Black Sea logistics and dry North American sowing, not inputs. Australia and India are the exposed growers.",
+        where: "Gulf urea to Australia and India for the 2026/27 season", lanes: ["r18", "r16", "r30"] },
+      { c: "Soybeans", live: "SOY", nShare: 0.011, npkShare: 0.054, prod: 319, trade: 0.45, nInt: 0.05, gulf: 0.3, timing: 0.4, respond: 0.15, thin: 0.3, other: 0.3, fragile: 0.2,
+        why: "Fixes its own nitrogen, so the urea shock barely touches it. Needs phosphate and potash, and Brazil imports 98% of its potash, but potash ships from Canada and Russia away from the war zone. Farmers switch maize area into soy when nitrogen is expensive.",
+        where: "Phosphate (sulphur-limited) and potash into Brazil", lanes: ["r26", "r28", "r29"] }
+    ],
+    // The rice input chain, upstream to field. status: severe | elevated | watch | eased | open
+    chain: [
+      { n: "Natural gas feedstock", d: "Gulf gas makes the ammonia. Ras Laffan stopped on 2 Mar and 17% of Qatar's capacity is damaged.", status: "severe", src: ["qatar"] },
+      { n: "Gulf urea and ammonia plants", d: "Qatar, Saudi Arabia, Iran, UAE and Bahrain plants sit inside the strait. Oman's Sur plant sits outside it and keeps shipping.", status: "severe", src: ["ifpri"] },
+      { n: "Strait of Hormuz", d: "A quarter to a third of world urea exports. About 3.9 Mt of Gulf fertiliser exports suspended by May.", status: "severe", src: ["ifpri", "wb"], live: "UREA", binding: "Mar to May" },
+      { n: "China export valve", d: "China's urea export ban was lifted around May. Urea fell from $857/t in April back to about $400/t, below pre-war.", status: "eased", src: ["ifpri"], live: "UREA" },
+      { n: "Sulphur to phosphate", d: "40 to 45% of seaborne sulphur is Gulf by-product. No sulphur, no phosphoric acid, no DAP. Saudi Arabia alone supplies 42% of India's DAP.", status: "severe", src: ["kpler", "dte"], live: "DAP", binding: "Now" },
+      { n: "Import tenders and subsidy", d: "India buys urea and DAP through government tenders and caps farm prices with subsidy, so price shocks land on the budget first, then on availability.", status: "watch", src: ["dte"], est: true },
+      { n: "Diesel for irrigation", d: "Gulf diesel exports at about 25% of pre-war. Bangladesh boro farmers ran short of diesel for shallow and low-lift pumps.", status: "elevated", src: ["iea", "boro"] },
+      { n: "Field application window", d: "Rabi season (India wheat and Bangladesh boro rice) needs DAP at sowing in Oct to Dec and urea from Dec. This is the next test.", status: "watch", est: true }
+    ],
+    // Fallback monthly prices ($/t, World Bank Pink Sheet, 2 Oct 2026 release) used when data/live.json is absent
+    fallback: {
+      UREA: [["2026-01", 415.4], ["2026-02", 472.0], ["2026-03", 725.6], ["2026-04", 856.9], ["2026-05", 770.5], ["2026-06", 453.1], ["2026-07", 400.0], ["2026-08", 390.0], ["2026-09", 407.5]],
+      DAP: [["2026-01", 619.2], ["2026-02", 626.5], ["2026-03", 658.3], ["2026-04", 725.3], ["2026-05", 769.5], ["2026-06", 783.8], ["2026-07", 781.3], ["2026-08", 793.5], ["2026-09", 800.6]]
+    },
+    // Fertiliser application and buying windows, as [start, end] month indexes from Jan 2026 = 0
+    windows: [
+      { crop: "Rice", n: "Bangladesh boro rice, urea top-dress", m: [0, 3] },
+      { crop: "Maize", n: "US maize, spring nitrogen", m: [2, 4] },
+      { crop: "Rice", n: "South Asia kharif rice, urea", m: [4, 7] },
+      { crop: "Rice", n: "SE Asia main rice crop, urea", m: [4, 7] },
+      { crop: "Wheat", n: "Australia wheat, urea top-dress", m: [5, 7] },
+      { crop: "Soybeans", n: "Brazil soy, P and K buying", m: [3, 8] },
+      { crop: "Wheat", n: "India rabi wheat, DAP at sowing", m: [9, 11] },
+      { crop: "Rice", n: "Bangladesh boro 2027, urea", m: [12, 14] },
+      { crop: "Maize", n: "Brazil safrinha maize, nitrogen", m: [12, 14] }
+    ]
+  },
+
   // Spot market vs producer economics. dir: which side wins.
   divergence: [
     { c: "Copper", spot: "Record $14,875/t on 10 Sep. ShFE stocks lowest since Jan 2024.",
@@ -252,6 +305,11 @@ window.DATA = {
   sources: {
     iea: { t: "IEA Oil Market Report, September 2026", u: "https://www.iea.org/reports/oil-market-report-september-2026" },
     lloyds: { t: "Lloyd's List Intelligence, Strait of Hormuz Brief, 9 Sep 2026", u: "https://www.lloydslistintelligence.com/resources/blog/strait-of-hormuz-brief-9-september-2026" },
+    ifa: { t: "IFA, Assessment of Fertilizer Use by Crop at the Global Level, 2014/15", u: "https://api.ifastat.org/reports/download/12246" },
+    dte: { t: "Down To Earth, UNCTAD warning on India's fertiliser imports", u: "https://www.downtoearth.org.in/food/fertiliser-shock-looms-as-strait-of-hormuz-shipping-disruption-ripples-through-supply-chains-warns-unctad" },
+    boro: { t: "The Daily Star, fertiliser and irrigation challenges may shrink boro output (USDA)", u: "https://www.thedailystar.net/business/news/fertiliser-irrigation-challenges-may-shrink-boro-rice-output-usda-4149141" },
+    agbull: { t: "Ag Bull Trading, The world's fertilizer squeeze closes in on Brazil and Asia's rice bowl", u: "https://www.agbull.com/the-worlds-fertilizer-squeeze-closes-in-on-brazil-and-asias-rice-bowl/" },
+    fortune: { t: "Fortune, Why the closed Strait of Hormuz puts half the world's calories at risk", u: "https://fortune.com/2026/04/09/global-food-emergency-how-bad-strait-hormuz-grocery-prices-shortages/" },
     ifpri: { t: "IFPRI, Iran war: from fertilizer to food crisis?", u: "https://www.ifpri.org/blog/iran-war-from-fertilizer-to-food-crisis/" },
     wb: { t: "World Bank, Fertilizer prices surge as Hormuz disruptions tighten supplies", u: "https://blogs.worldbank.org/en/opendata/fertilizer-prices-surge-as-strait-of-hormuz-disruptions-tighten-" },
     kpler: { t: "Kpler, Sulphur and sulphuric acid in 2026", u: "https://www.kpler.com/blog/sulphur-sulphuric-acid-in-2026-the-feedstock-crisis-cascading-through-copper-nickel-fertilisers" },
