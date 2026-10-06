@@ -38,7 +38,7 @@
   // ---------- data fetch ----------
   async function getSoil(lon, lat) {
     const props = ["phh2o", "soc", "clay", "sand", "nitrogen"].map((p) => `property=${p}`).join("&");
-    const r = await fetch(`https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${lon.toFixed(4)}&lat=${lat.toFixed(4)}&${props}&depth=0-5cm&value=mean`);
+    const r = await fetch(`https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${lon.toFixed(4)}&lat=${lat.toFixed(4)}&${props}&depth=0-5cm&value=mean`, { signal: AbortSignal.timeout(20000) });
     if (!r.ok) throw new Error("SoilGrids " + r.status);
     const j = await r.json(), out = {};
     for (const l of j.properties.layers) {
@@ -49,7 +49,7 @@
   }
   async function getClimate(lon, lat) {
     const y = new Date().getUTCFullYear() - 1;
-    const r = await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&start_date=${y}-01-01&end_date=${y}-12-31&daily=precipitation_sum,temperature_2m_mean&timezone=UTC`);
+    const r = await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&start_date=${y}-01-01&end_date=${y}-12-31&daily=precipitation_sum,temperature_2m_mean&timezone=UTC`, { signal: AbortSignal.timeout(15000) });
     if (!r.ok) throw new Error("Open-Meteo " + r.status);
     const j = await r.json();
     const p = j.daily.precipitation_sum.filter((v) => v != null), t = j.daily.temperature_2m_mean.filter((v) => v != null);
@@ -192,7 +192,7 @@
     st.soil = soil.status === "fulfilled" ? soil.value : null;
     st.clim = clim.status === "fulfilled" ? clim.value : null;
     const fails = [soil.status !== "fulfilled" && "SoilGrids", clim.status !== "fulfilled" && "Open-Meteo"].filter(Boolean);
-    $("#spotCoords").textContent = `${lat.toFixed(3)}°, ${lon.toFixed(3)}°${st.zone ? ` · ${st.zone.note}` : ""}${fails.length ? ` · ${fails.join(" and ")} did not respond, so those values are missing. Try again in a minute.` : ""}`;
+    $("#spotCoords").textContent = `${lat.toFixed(3)}°, ${lon.toFixed(3)}°${st.zone ? ` · ${st.zone.note}` : ""}${fails.length ? ` · ${fails.join(" and ")} did not respond in time, so those values are missing. SoilGrids limits how many requests it answers per minute, so try again shortly or set the land type by hand.` : ""}`;
     [st.landAuto, st.landReason] = inferLand();
     st.land = st.landAuto;
     analyse();
@@ -254,7 +254,7 @@
     const view = new MapView({ container: "viewDiv", map, center: [80, 10], zoom: 2, constraints: { minZoom: 2, snapToZoom: false }, popupEnabled: false });
     view.ui.add(new ScaleBar({ view, unit: "metric" }), "bottom-left");
     view.ui.add(new BasemapToggle({ view, nextBasemap: topo }), "bottom-right");
-    view.ui.add(new Expand({ view, content: new LayerList({ view }), expandTooltip: "Layers", expanded: window.innerWidth > 900 }), "top-right");
+    view.ui.add(new Expand({ view, content: new LayerList({ view }), expandTooltip: "Layers", expanded: false }), "top-right");
 
     window.__atlasMark = () => {
       markL.removeAll();
