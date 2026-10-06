@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Soil Resilience Planner</title>
+<meta name="description" content="Pick a country or farm context and get ranked, evidence-backed strategies to keep soil fertile with little or no synthetic fertiliser, plus system-level actions to cut fertiliser supply risk.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <p class="eyebrow">Soil fertility risk / strategy planner</p>
+      <h1>Soil Resilience Planner</h1>
+      <p class="lede">Pick a country or describe a farm. The planner ranks proven ways to keep soil fertile with little or no synthetic fertiliser, checks which nutrients the plan still leaves uncovered, and lists the system-level moves that cut exposure to fertiliser supply shocks.</p>
+    </div>
+    <div class="meta">
+      <span class="eyebrow">Companion to the Chokepoint Ledger</span>
+      <nav class="sitenav" aria-label="Pages"><a href="index.html">Ledger</a><a href="soil.html" aria-current="page">Soil Resilience Planner</a></nav>
+    </div>
+  </header>
+
+  <div class="planner">
+    <form class="pform" id="pform" autocomplete="off">
+      <div class="field">
+        <label for="country">Country</label>
+        <select id="country"></select>
+        <span class="note">Sets the defaults below from the Ledger dataset. Change anything.</span>
+      </div>
+      <div class="field"><span class="lab">Climate</span><div class="chips" id="f-cl" role="radiogroup" aria-label="Climate"></div></div>
+      <div class="field">
+        <label for="crop">Main crop</label>
+        <select id="crop">
+          <option value="rice">Rice</option><option value="maize">Maize</option><option value="wheat">Wheat</option>
+          <option value="millet">Sorghum and millet</option><option value="soy">Soy and pulses</option>
+          <option value="roots">Potato, cassava and roots</option><option value="veg">Vegetables</option>
+        </select>
+      </div>
+      <div class="field"><span class="lab">Water</span><div class="chips" id="f-water" role="radiogroup" aria-label="Water"></div></div>
+      <div class="field"><span class="lab">Farm size</span><div class="chips" id="f-scale" role="radiogroup" aria-label="Farm size"></div></div>
+      <div class="field"><span class="lab">Livestock on or near the farm</span><div class="chips" id="f-live" role="radiogroup" aria-label="Livestock"></div></div>
+      <div class="field"><span class="lab">Soil problems</span><div class="chips" id="f-prob" aria-label="Soil problems"></div></div>
+    </form>
+
+    <main class="presults" aria-live="polite">
+      <section class="exposure" id="exposure"></section>
+
+      <section>
+        <div class="sec-head"><h2>Your plan</h2><span class="note" id="planNote"></span></div>
+        <div class="stages" id="stages"></div>
+      </section>
+
+      <section class="cov">
+        <div class="sec-head"><h2>Nutrient check</h2><span class="note">Which nutrients the top picks cover, and what is still missing</span></div>
+        <div class="tscroll"><table id="covTable"></table></div>
+        <div id="gaps"></div>
+      </section>
+
+      <section>
+        <div class="sec-head"><h2>System-level moves</h2><span class="note">For governments, co-ops, buyers and aid programmes</span></div>
+        <ol class="sys" id="sys"></ol>
+      </section>
+
+      <section class="foot">
+        <span>Rankings combine how well each method fits the climate, crop, water, farm size and soil problems you pick, weighted by the strength of its evidence. They are a starting point for a soil test and local advice, not a substitute for them.</span>
+        <span id="psources"></span>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+<script src="data/data.js"></script>
+<script src="data/soil.js"></script>
+<script src="assets/planner.js"></script>
+</body>
+</html>

@@ -18,6 +18,7 @@
     <div class="meta">
       <span class="eyebrow">Data as of <span id="asof" class="mono"></span></span>
       <span><span class="pill st-severe">Hormuz: severe</span></span>
+      <nav class="sitenav" aria-label="Pages"><a href="index.html" aria-current="page">Ledger</a><a href="soil.html">Soil Resilience Planner</a></nav>
     </div>
   </header>
 
@@ -76,6 +77,7 @@
     <button class="tab" role="tab" id="tab-lines" aria-selected="true" aria-controls="p-lines">Supply lines</button>
     <button class="tab" role="tab" id="tab-rank" aria-selected="false" aria-controls="p-rank">Constraint ranking</button>
     <button class="tab" role="tab" id="tab-crops" aria-selected="false" aria-controls="p-crops">Staple crops</button>
+    <button class="tab" role="tab" id="tab-soil" aria-selected="false" aria-controls="p-soil">Soil without fertiliser</button>
     <button class="tab" role="tab" id="tab-div" aria-selected="false" aria-controls="p-div">Spot vs producers</button>
     <button class="tab" role="tab" id="tab-bal" aria-selected="false" aria-controls="p-bal">Refining balance</button>
     <button class="tab" role="tab" id="tab-method" aria-selected="false" aria-controls="p-method">Method and sources</button>
@@ -109,6 +111,21 @@
     </div>
     <div class="chart" id="cropCal"></div>
     <p class="note">Fertiliser use by crop from IFA (2014/15), production from USDA for the same season. Factor scores are judgement calls from the cited reporting. Click a row for detail.</p>
+  </section>
+
+  <section class="panel" id="p-soil" role="tabpanel" aria-labelledby="tab-soil" hidden>
+    <p class="callout"><strong>Farms fed cities for thousands of years before synthetic fertiliser.</strong> The methods below are the ones with field evidence behind them, from the chinampas that fed Tenochtitlan to the inoculants that let Brazil grow soy on almost no nitrogen fertiliser. They matter now because they cut exposure to the lanes on the map above.</p>
+    <div class="balance" id="soilBalance"></div>
+    <div class="soil-filters">
+      <div class="field"><span class="lab">Supplies</span><div class="chips" id="soilNut"></div></div>
+      <div class="field"><span class="lab">Climate</span><div class="chips" id="soilClim"></div></div>
+      <div class="soil-actions">
+        <button class="btn" type="button" id="soilSites">Show where each method comes from</button>
+        <a class="btn btn-go" href="soil.html">Build a plan for a country</a>
+      </div>
+    </div>
+    <div class="mgrid" id="soilCards"></div>
+    <p class="note">Evidence strength: strong = multiple meta-analyses or long-term trials, moderate = consistent field trials, mixed = results depend heavily on conditions. Microdosing is included as a bridge because it still uses a little fertiliser.</p>
   </section>
 
   <section class="panel" id="p-div" role="tabpanel" aria-labelledby="tab-div" hidden>
@@ -150,6 +167,7 @@
 <script src="assets/vendor/topojson-client.min.js"></script>
 <script src="data/world.js"></script>
 <script src="data/data.js"></script>
+<script src="data/soil.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>

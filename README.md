@@ -4,6 +4,8 @@ Interactive map of global energy, fertiliser, food and metal supply lines, built
 
 ```
 index.html            dashboard (static, no build step)
+soil.html             Soil Resilience Planner (country or farm context -> ranked strategies)
+data/soil.js          soil methods, system-level moves and country defaults
 assets/               app.js, style.css, self-hosted fonts, vendored D3 + topojson
 data/data.js          EVERY number in the dashboard lives here
 data/world.js         world map geometry (Natural Earth 110m)
@@ -29,6 +31,7 @@ To test locally: `python -m http.server` in this folder, then open `http://local
 | Scenario slider | Reopens Hormuz from 0 to 100% and recomputes every score |
 | Constraint ranking | 16 commodities scored on 7 factors with adjustable weights. Ghost tick = score after a full reopening, which separates transient from structural shortages |
 | Staple crops | Which staple is most sensitive to input supply (rice, then maize, wheat, soybeans) on seven factors, the rice input chain from gas feedstock to paddy with the binding bottleneck flagged, and a timing chart of which crops bought fertiliser at the 2026 price peak (driven by the live World Bank feed) |
+| Soil without fertiliser | 15 proven methods (chinampas, waru waru, legume rotations, milpa intercrops, soy inoculants, Azolla, rice-fish, fertiliser trees, push-pull, zai pits, manure loops, night soil, biochar, conservation agriculture, microdosing) with evidence, limits and a nutrient mass balance showing why nitrogen can be fixed but phosphorus and potassium must be recycled. Origins can be shown on the map |
 | Spot vs producers | Why spot prices and producer earnings diverge, commodity by commodity |
 | Refining balance | Who can refine more than they burn |
 
@@ -39,6 +42,10 @@ To test locally: `python -m http.server` in this folder, then open `http://local
 * **Food input vulnerability** = `0.4*(1 - soil/100) + 0.3*fertiliser import share + 0.3*share of fertiliser imports via Hormuz`.
 
 Flags marked `EST` are model estimates. Country oil balances are approximate pre-war values. Soil and fertiliser dependence figures are teaching composites, replace them with ISRIC SoilGrids and FAOSTAT if you want publication grade numbers. Sources are listed in the dashboard and in `data/data.js`.
+
+### Soil Resilience Planner
+
+`soil.html` ranks the methods for a country or a custom farm (climate, crop, water, farm size, livestock, soil problems), splits them into this season, 1 to 3 years and 5+ years, checks which nutrients the plan leaves uncovered, and lists system-level moves triggered by the country's fertiliser import and Hormuz exposure. Link straight to a country with its ISO numeric code, for example `soil.html#c356` for India.
 
 ### Live data feed
 

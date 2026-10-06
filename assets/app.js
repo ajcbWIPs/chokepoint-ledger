@@ -122,6 +122,7 @@
     .on("mousemove", (e, d) => countryTip(e, d)).on("mouseleave", hideTip);
   const routeG = root.append("g");
   const chokeG = root.append("g");
+  const siteG = root.append("g");
 
   const coord = (p) => (typeof p === "string" ? D.nodes[p] : p);
   const routeGeo = (r) => ({ type: "LineString", coordinates: r.path.map(coord) });
@@ -131,6 +132,8 @@
     zoomK = e.transform.k;
     root.attr("transform", e.transform);
     chokeG.selectAll("circle").attr("r", 5.5 / zoomK);
+    siteG.selectAll("circle").attr("r", 5 / zoomK);
+    siteG.selectAll("text").style("font-size", 10 / zoomK + "px").attr("dx", (d) => (d.lab === "left" ? -7 : 7) / zoomK).attr("dy", 3.5 / zoomK);
     chokeG.selectAll("text").style("font-size", 10 / zoomK + "px").attr("dx", 8 / zoomK).attr("dy", 3.5 / zoomK);
   });
   svg.call(zoom);
@@ -247,6 +250,11 @@
   function drawDetail() {
     const el = $("#detail");
     const id = state.sel;
+    if (state.highlight && !id && !state.highlight.lanes.length) {
+      el.innerHTML = `<span class="eyebrow">Soil methods</span><p class="note">Green dots mark where each fertiliser-free method was developed or proven. Click one to read about it. Supply lines and chokepoints are faded while the dots are shown.</p><button class="btn" type="button" id="clearHl">Show supply lines again</button>`;
+      $("#clearHl").onclick = () => { soilState.sites = false; drawSites(); state.highlight = null; refresh(); };
+      return;
+    }
     if (state.highlight && !id) {
       const lanes = D.routes.filter((r) => state.highlight.lanes.includes(r.id)).map((r) => ({ r, v: routeV(r).v })).sort((a, b) => b.v - a.v);
       el.innerHTML = `<span class="eyebrow">Input lanes for ${state.highlight.crop}</span>
@@ -467,6 +475,83 @@
     g.append("text").attr("x", (d) => x(d.m[1] + 1) + 5).attr("y", rowH / 2 + 4).text((d) => (d.idx == null ? "ahead" : `${d.idx.toFixed(0)}${d.partial ? "*" : ""}`));
   }
 
+  // ---------- soil without fertiliser ----------
+  const S = window.SOIL;
+  const NUT_LABEL = { N: "Nitrogen", P: "Phosphorus", K: "Potassium", OM: "Organic matter", pH: "Fixes acidity", water: "Water" };
+  const CL_LABEL = { humid: "Humid tropics", dry: "Dry and semi-arid", temperate: "Temperate", highland: "Highland" };
+  const soilState = { nut: "All", cl: "All", sites: false };
+  const srcLinks = (ids) => ids.map((k) => S.sources[k] || D.sources[k]).filter(Boolean).map((s) => `<a href="${s.u}" target="_blank" rel="noopener">${s.t}</a>`).join(" · ");
+
+  function drawBalance() {
+    const r = S.removal, max = r.N;
+    const groups = {
+      N: { fix: ["rotation", "intercrop", "inoculant", "azolla", "trees", "pushpull"], rec: ["manure", "excreta", "ricefish", "chinampa"] },
+      P: { fix: [], rec: ["manure", "excreta", "chinampa"] },
+      K: { fix: [], rec: ["manure", "excreta", "chinampa"] }
+    };
+    const name = (id) => S.methods.find((m) => m.id === id).name.split(" (")[0];
+    $("#soilBalance").innerHTML = `<div>
+        <h3>What biology can and cannot replace</h3>
+        <p class="note">Every harvest carries nutrients off the field. ${r.crop} removes roughly this much (typical removal rates):</p>
+        <div style="margin-top:12px">${["N", "P", "K"].map((k) => `<div class="brow"><span class="bn">${k}</span>
+          <div class="bbar"><span style="width:${(r[k] / max) * 100}%;background:${k === "N" ? "var(--s-open)" : "var(--s-elevated)"}"></span></div>
+          <span class="mono">${r[k]} kg/ha</span>
+          <span class="bsrc">${k === "N" ? "Can come from the air. Legumes, Azolla and fertiliser trees fix it biologically." : "Cannot be made biologically. Has to be recycled back (manure, excreta, sediment) or mined."}</span></div>`).join("")}</div>
+      </div>
+      <div class="note" style="display:grid;gap:10px;align-content:start;font-size:0.86rem">
+        <p><strong style="color:var(--ink)">Nitrogen is the easy part.</strong> ${groups.N.fix.map(name).join(", ")} all pull nitrogen from the air, which is exactly the nutrient the Strait of Hormuz cut off.</p>
+        <p><strong style="color:var(--ink)">Phosphorus and potassium have to be moved, not made.</strong> Chinampas dredge them up from the whole lake catchment. Manure moves them from pasture to cropland. Night soil moved them from Edo's kitchens back to its fields. A system that exports grain for years without returning P and K is mining its soil.</p>
+        <p>That is why the phosphate leg in the Staple crops tab is the harder bottleneck. There is no biological shortcut for sulphur-limited DAP, only recycling.</p>
+      </div>`;
+  }
+
+  function drawSoilFilters() {
+    $("#soilNut").innerHTML = ["All", "N", "P", "K", "OM", "pH", "water"].map((k) => `<button type="button" class="chip" data-k="${k}" aria-pressed="${soilState.nut === k}">${k === "All" ? "All" : NUT_LABEL[k]}</button>`).join("");
+    $("#soilClim").innerHTML = ["All", "humid", "dry", "temperate", "highland"].map((k) => `<button type="button" class="chip" data-k="${k}" aria-pressed="${soilState.cl === k}">${k === "All" ? "All" : CL_LABEL[k]}</button>`).join("");
+    $("#soilNut").querySelectorAll(".chip").forEach((b) => (b.onclick = () => { soilState.nut = b.dataset.k; drawSoil(); }));
+    $("#soilClim").querySelectorAll(".chip").forEach((b) => (b.onclick = () => { soilState.cl = b.dataset.k; drawSoil(); }));
+  }
+
+  function drawSoil() {
+    drawSoilFilters();
+    const list = S.methods.filter((m) => (soilState.nut === "All" || m.provides[soilState.nut] >= 2) && (soilState.cl === "All" || m.climates.includes(soilState.cl)))
+      .sort((a, b) => (soilState.nut === "All" ? 0 : b.provides[soilState.nut] - a.provides[soilState.nut]));
+    const yrs = { 0: "Works this season", 1: "1 to 3 years to establish", 5: "5+ years to establish" };
+    $("#soilCards").innerHTML = list.length ? list.map((m) => `<article class="mcard" id="m-${m.id}">
+      <div class="mhead"><div><h3>${m.name}</h3><div class="origin">${m.origin}</div></div><span class="strength ${m.strength}" title="evidence strength">${m.strength}</span></div>
+      <div class="mstat">${m.stat}<small>${m.statNote}</small></div>
+      <p>${m.how}</p>
+      <p>${m.evidence}</p>
+      <div class="nuts">${Object.keys(NUT_LABEL).filter((k) => m.provides[k] > 0).map((k) => `<span class="nut l${m.provides[k]}" title="${["", "some", "good", "main source"][m.provides[k]]}">${NUT_LABEL[k]}</span>`).join("")}<span class="nut">${yrs[m.years]}</span></div>
+      <div class="lim"><b>Limits.</b> ${m.limits}</div>
+      ${m.src.length ? `<div class="srcs">${srcLinks(m.src)}</div>` : ""}
+    </article>`).join("") : `<p class="note">No method in the catalogue is a main source of that nutrient in that climate. Try another filter.</p>`;
+    drawSites();
+  }
+
+  function drawSites() {
+    const data = soilState.sites ? S.methods.filter((m) => m.at) : [];
+    const sel = siteG.selectAll("g.site").data(data, (d) => d.id).join((enter) => {
+      const g = enter.append("g").attr("class", "site");
+      g.append("circle"); g.append("text");
+      return g;
+    });
+    sel.attr("transform", (d) => `translate(${proj(d.at)})`)
+      .on("mousemove", (e, d) => showTip(e, `<b>${d.name}</b><br>${d.origin}<br><span class="mono">${d.stat}</span>`))
+      .on("mouseleave", hideTip)
+      .on("click", (e, d) => { setTab("soil"); const el = document.getElementById("m-" + d.id); el.scrollIntoView({ behavior: "smooth", block: "start" }); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1600); });
+    sel.select("circle").attr("r", 5 / zoomK);
+    sel.select("text").text((d) => d.short || d.name).attr("text-anchor", (d) => (d.lab === "left" ? "end" : "start")).style("font-size", 10 / zoomK + "px").attr("dx", (d) => (d.lab === "left" ? -7 : 7) / zoomK).attr("dy", 3.5 / zoomK);
+    chokeG.style("display", soilState.sites ? "none" : null);
+    $("#soilSites").textContent = soilState.sites ? "Hide method origins on the map" : "Show where each method comes from";
+  }
+  $("#soilSites").onclick = () => {
+    soilState.sites = !soilState.sites; drawSites();
+    if (soilState.sites) { state.highlight = { crop: "soil methods", lanes: [] }; refresh(); zoomReset(); document.querySelector(".desk").scrollIntoView({ behavior: "smooth", block: "start" }); }
+    else { state.highlight = null; refresh(); }
+  };
+  drawBalance(); drawSoil();
+
   // ---------- refining balance ----------
   function drawBal() {
     const rows = Object.values(D.countries).map((c) => ({ n: c.n, v: c.ref - c.cons })).filter((r) => Math.abs(r.v) >= 0.2).sort((a, b) => b.v - a.v);
@@ -516,7 +601,7 @@
   drawWeights(); drawBal(); refresh(); drawCrops();
   if (location.hash === "#capture") document.body.classList.add("capture");
   const tabHash = location.hash.replace("#", "");
-  if (["lines", "rank", "crops", "div", "bal", "method"].includes(tabHash)) setTab(tabHash);
+  if (["lines", "rank", "crops", "soil", "div", "bal", "method"].includes(tabHash)) setTab(tabHash);
 
   // Repaint colours when the theme changes
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawBal(); refresh(); drawCrops(); });
@@ -537,6 +622,7 @@
     if (o.select !== undefined) state.sel = o.select;
     if (o.highlightCrop !== undefined) state.highlight = o.highlightCrop ? { crop: o.highlightCrop, lanes: C.list.find((c) => c.c === o.highlightCrop).lanes } : null;
     if (o.crop) state.crop = o.crop;
+    if (o.sites !== undefined) { soilState.sites = !!o.sites; drawSites(); }
     if (o.tab) setTab(o.tab);
     if (o.view !== undefined) document.body.classList.toggle("view-panel", o.view === "panel");
     else if (o.tab) document.body.classList.add("view-panel");
