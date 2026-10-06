@@ -391,3 +391,49 @@ body.capture.portrait .legend { position: static; margin: 14px 16px; max-width: 
 .sys .here { font: 0.76rem/1.4 var(--f-data); color: var(--ink); background: color-mix(in srgb, var(--accent) 10%, transparent); padding: 5px 7px; border-radius: 3px; }
 @media (max-width: 1100px) { .stages { grid-template-columns: 1fr; } .gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 860px) { .planner { grid-template-columns: 1fr; } .pform { position: static; max-height: none; } }
+
+/* ---------- Land Conversion Atlas (land.html) ---------- */
+.atlas { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; margin-top: 20px; align-items: start; }
+.atlas-map { position: relative; display: grid; gap: 10px; min-width: 0; }
+#viewDiv { height: min(78vh, 760px); min-height: 460px; width: 100%; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--sea); }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets .chip i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.maplegend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.76rem; color: var(--ink-2); }
+.maplegend span { display: inline-flex; gap: 6px; align-items: center; }
+.maplegend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; opacity: 0.85; }
+.maplegend i.dia { width: 9px; height: 9px; border-radius: 1px; transform: rotate(45deg); background: #0a5875; }
+.atlas-side { display: grid; gap: 22px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; padding-right: 4px; }
+.spot h2 { font-size: 1.5rem; margin-top: 2px; }
+.readouts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; margin-top: 10px; }
+.ro { display: grid; gap: 1px; min-width: 0; }
+.ro .k { font-size: 0.72rem; color: var(--muted); }
+.ro .v { font: 700 1.05rem/1.2 var(--f-data); font-variant-numeric: tabular-nums; }
+.ro .v small { font-size: 0.66rem; color: var(--muted); margin-left: 3px; font-weight: 500; }
+.ro .n { font-size: 0.66rem; color: var(--muted); }
+.overrides { display: grid; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; }
+.croprow { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); position: relative; }
+.croprow + .croprow { margin-top: 8px; }
+.croprow.top { border-color: var(--s-open); box-shadow: inset 3px 0 0 var(--s-open); }
+.croprow .est { position: absolute; right: 10px; bottom: 8px; }
+.cr-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.croprow .fit { display: grid; grid-template-columns: 1fr 2.4em; gap: 8px; align-items: center; font-size: 0.78rem; }
+.croprow .mono { text-align: right; }
+.why2 { font-size: 0.78rem; color: var(--ink-2); }
+.warn2 { font-size: 0.76rem; color: var(--s-elevated); }
+.usechip { font: 600 0.62rem/1 var(--f-data); letter-spacing: 0.05em; text-transform: uppercase; padding: 4px 6px; border-radius: 3px; border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+.usechip.u-metal { border-color: var(--s-open); color: var(--s-open); }
+.usechip.u-forage { border-color: var(--s-watch); color: var(--s-watch); }
+.usechip.u-oil { border-color: var(--accent); color: var(--accent); }
+.stagesrow.vertical { grid-template-columns: 1fr; margin: 10px 0; }
+#pathway { display: grid; gap: 8px; font-size: 0.86rem; }
+#pathway .btn { justify-self: start; text-decoration: none; }
+.exports { display: grid; gap: 8px; }
+.exports .btn { text-align: center; text-decoration: none; }
+.exports .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.esri-view .esri-view-surface--inset-outline:focus::after { outline: 2px solid var(--accent); }
+@media (max-width: 1050px) { .atlas { grid-template-columns: 1fr; } .atlas-side { position: static; max-height: none; overflow: visible; } #viewDiv { height: 62vh; } }
+@media (max-width: 480px) { .readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.check { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: baseline; font-size: 0.84rem; }
+.check .note { grid-column: 2; }
+.check input { accent-color: var(--accent); }

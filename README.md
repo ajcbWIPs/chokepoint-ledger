@@ -4,6 +4,7 @@ Interactive map of global energy, fertiliser, food and metal supply lines, built
 
 ```
 index.html            dashboard (static, no build step)
+land.html             Land Conversion Atlas (ArcGIS map, click a spot -> crops and conversion pathway)
 soil.html             Soil Resilience Planner (country or farm context -> ranked strategies)
 data/soil.js          soil methods, system-level moves and country defaults
 assets/               app.js, style.css, self-hosted fonts, vendored D3 + topojson
@@ -46,6 +47,17 @@ Flags marked `EST` are model estimates. Country oil balances are approximate pre
 ### Soil Resilience Planner
 
 `soil.html` ranks the methods for a country or a custom farm (climate, crop, water, farm size, livestock, soil problems), splits them into this season, 1 to 3 years and 5+ years, checks which nutrients the plan leaves uncovered, and lists system-level moves triggered by the country's fertiliser import and Hormuz exposure. It also takes a land type (ordinary cropland or one of eight marginal land types), shows the conversion pathway first and matches restoration projects. Link straight to a country with its ISO numeric code, a land type, or both: `soil.html#c356`, `soil.html#land-ultramafic`, `soil.html#c036_land-saline`.
+
+### Land Conversion Atlas
+
+`land.html` is an ArcGIS Maps SDK for JavaScript (4.34) map with satellite and topographic basemaps, SoilGrids pH and organic carbon layers, 27 mapped marginal-land zones (saline, sodic, ultramafic, tailings, acid sulfate, sand, degraded, wetland) and the restoration projects. Click anywhere and it:
+
+1. pulls topsoil pH, organic carbon, clay and sand from the SoilGrids REST API and last year's rainfall and temperature from Open-Meteo,
+2. checks whether the point sits in a mapped zone (which sets land type and typical salinity) or infers a land type from the soil and climate,
+3. ranks 33 crops, forages, trees, halophytes and nickel hyperaccumulators using FAO Paper 61 salt tolerance (yield = 100 - b x (ECe - T)) plus pH, rainfall and temperature ranges, with penalties for food crops on ultramafic land and a toggle to score after gypsum or liming,
+4. shows the conversion pathway and the nearest proven project.
+
+Results export as GeoJSON for ArcGIS Online or Pro, and `data/zones.geojson` holds every zone (with pathway stages and plant lists) and project as a ready-made layer. No API key is needed. Deep links: `land.html#z-wa-salt` for a zone, or `land.html#p31d600_m117d600`-style point links that the page writes as you click.
 
 ### Live data feed
 

@@ -201,7 +201,7 @@
       <div class="lp-grid"><div><p><b>How to recognise it.</b> ${l.test}</p><p style="margin-top:8px"><b>Why it fails.</b> ${l.constraint}</p></div><div><b>What it can produce</b><p>${l.products}</p></div></div>
       <ol class="stagesrow">${l.stages.map((s, i) => `<li><span class="sn">STAGE ${i + 1}</span><b>${s.t}</b><span>${s.d}</span></li>`).join("")}</ol>
       <div class="lp-grid"><div><b>Plants that work</b><table class="plants"><tbody>${l.plants.map(([p, r]) => `<tr><td>${p}</td><td>${r}</td></tr>`).join("")}</tbody></table></div>
-      <div><p class="lim"><b>Watch for.</b> ${l.warn}</p>${econ}</div></div></div>`;
+      <div><p class="lim"><b>Watch for.</b> ${l.warn}</p>${econ}<a class="btn btn-go" style="margin-top:10px;display:inline-block;text-decoration:none" href="land.html${(window.ATLAS_FIRST || {})[l.id] ? "#z-" + window.ATLAS_FIRST[l.id] : ""}">Map this land type and get crop picks</a></div></div></div>`;
   }
 
   function drawProjects() {

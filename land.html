@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Land Conversion Atlas</title>
+<meta name="description" content="ArcGIS map of salt-affected, sodic, ultramafic, acid sulfate and degraded land. Click anywhere to pull live soil and climate data and get ranked crops and a conversion pathway for that spot.">
+<link rel="stylesheet" href="https://js.arcgis.com/4.34/esri/themes/light/main.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
+<link rel="stylesheet" href="https://js.arcgis.com/4.34/esri/themes/dark/main.css" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <p class="eyebrow">Marginal land / crop suitability map</p>
+      <h1>Land Conversion Atlas</h1>
+      <p class="lede">Click anywhere on the map. The atlas pulls topsoil pH, carbon and texture from SoilGrids and last year's rainfall and temperature from Open-Meteo, checks whether the spot falls in a mapped saline, sodic, ultramafic or acid sulfate zone, then ranks what to grow there and how to convert the land.</p>
+    </div>
+    <div class="meta">
+      <span class="eyebrow">Companion to the Chokepoint Ledger</span>
+      <nav class="sitenav" aria-label="Pages"><a href="index.html">Ledger</a><a href="soil.html">Soil Resilience Planner</a><a href="land.html" aria-current="page">Land Atlas</a></nav>
+    </div>
+  </header>
+
+  <div class="atlas">
+    <div class="atlas-map">
+      <div class="presets" id="presets" aria-label="Jump to a mapped zone"></div>
+      <div id="viewDiv" role="application" aria-label="Map. Click a location to analyse it."></div>
+      <div class="maplegend" id="maplegend"></div>
+    </div>
+
+    <aside class="atlas-side" aria-live="polite">
+      <section class="spot" id="spot">
+        <span class="eyebrow">Selected location</span>
+        <h2 id="spotName">Click the map or pick a zone</h2>
+        <p class="note" id="spotCoords"></p>
+        <div class="readouts" id="readouts"></div>
+      </section>
+
+      <section class="overrides">
+        <div class="field">
+          <label for="landSel">Land type</label>
+          <select id="landSel"></select>
+          <span class="note" id="landWhy"></span>
+        </div>
+        <div class="field">
+          <label for="ecIn">Root-zone salinity, ECe <span class="mono" id="ecVal"></span></label>
+          <input type="range" id="ecIn" min="0" max="50" step="0.5" value="1">
+          <span class="note">From a soil test if you have one. Zones set a typical value. Seawater is about 50 dS/m.</span>
+        </div>
+        <label class="check"><input type="checkbox" id="treated" checked> Score crops after stage 1 treatment <span class="note">(gypsum on sodic land, lime on acid sulfate land)</span></label>
+        <div class="field">
+          <span class="lab">Water</span>
+          <div class="chips" id="waterChips"></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-head"><h2>What to grow here</h2></div>
+        <div id="cropList"></div>
+      </section>
+
+      <section>
+        <div class="sec-head"><h2>Conversion pathway</h2></div>
+        <div id="pathway"></div>
+      </section>
+
+      <section class="exports">
+        <button class="btn" type="button" id="dlSpot" disabled>Download this result as GeoJSON</button>
+        <a class="btn" href="data/zones.geojson" download>Download all zones as GeoJSON</a>
+        <span class="note">Both files load straight into ArcGIS Online (Add layer from file) or ArcGIS Pro.</span>
+      </section>
+    </aside>
+  </div>
+
+  <section class="foot">
+    <span>Soil values are SoilGrids 250 m model estimates for 0 to 5 cm. Zones are approximate centres and radii for orientation, not survey boundaries. Salinity is not in SoilGrids, so it comes from the zone preset or your own soil test. Crop limits use FAO salt tolerance data and approximate climate ranges. Check any recommendation against a local soil test and agronomist.</span>
+    <span id="asources"></span>
+  </section>
+</div>
+<div class="tip" id="tip" hidden></div>
+<script src="data/soil.js"></script>
+<script src="data/atlas.js"></script>
+<script src="https://js.arcgis.com/4.34/"></script>
+<script src="assets/atlas.js"></script>
+</body>
+</html>

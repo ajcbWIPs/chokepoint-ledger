@@ -617,7 +617,7 @@
         <div>${econ}<p class="lim" style="margin-top:10px"><b>Watch for.</b> ${l.warn}</p></div>
       </div>
       ${ex.length ? `<div><b>Proven at</b> <span class="nuts">${ex.map((p) => `<button type="button" class="nut l2 projlink" data-p="${p.id}">${p.name}</button>`).join("")}</span></div>` : ""}
-      <a class="btn btn-go" href="soil.html#land-${l.id}" style="justify-self:start">Plan for this land type</a>
+      <div class="soil-actions" style="margin-left:0"><a class="btn btn-go" href="soil.html#land-${l.id}">Plan for this land type</a>${(window.ATLAS_FIRST || {})[l.id] ? `<a class="btn" href="land.html#z-${window.ATLAS_FIRST[l.id]}">See where it is on the map</a>` : `<a class="btn" href="land.html">Open the Land Atlas</a>`}</div>
     </div>`;
     el.querySelectorAll(".projlink").forEach((b) => (b.onclick = () => flashCard("p-" + b.dataset.p)));
   }
