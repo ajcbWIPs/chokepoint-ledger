@@ -31,7 +31,7 @@ To test locally: `python -m http.server` in this folder, then open `http://local
 | Scenario slider | Reopens Hormuz from 0 to 100% and recomputes every score |
 | Constraint ranking | 16 commodities scored on 7 factors with adjustable weights. Ghost tick = score after a full reopening, which separates transient from structural shortages |
 | Staple crops | Which staple is most sensitive to input supply (rice, then maize, wheat, soybeans) on seven factors, the rice input chain from gas feedstock to paddy with the binding bottleneck flagged, and a timing chart of which crops bought fertiliser at the 2026 price peak (driven by the live World Bank feed) |
-| Soil without fertiliser | 15 proven methods (chinampas, waru waru, legume rotations, milpa intercrops, soy inoculants, Azolla, rice-fish, fertiliser trees, push-pull, zai pits, manure loops, night soil, biochar, conservation agriculture, microdosing) with evidence, limits and a nutrient mass balance showing why nitrogen can be fixed but phosphorus and potassium must be recycled. Origins can be shown on the map |
+| Soil without fertiliser | 15 proven methods (chinampas, waru waru, legume rotations, milpa intercrops, soy inoculants, Azolla, rice-fish, fertiliser trees, push-pull, zai pits, manure loops, night soil, biochar, conservation agriculture, microdosing) with evidence, limits and a nutrient mass balance showing why nitrogen can be fixed but phosphorus and potassium must be recycled. Origins can be shown on the map. Also covers turning marginal land productive (salt-affected, sodic, ultramafic, tailings, acid sulfate, sand, eroded slopes, wetland edges) with staged pathways, halophytes and hyperaccumulators, agromining value at the live nickel price, and 13 restoration projects with measured results (Loess Plateau, Niger FMNR, Tigray, Great Green Wall, Kubuqi, Al Baydha, India sodic reclamation, WA saltland, ICBA Salicornia, Sundrop, Albania and Sabah agromining, salt-tolerant potatoes) |
 | Spot vs producers | Why spot prices and producer earnings diverge, commodity by commodity |
 | Refining balance | Who can refine more than they burn |
 
@@ -45,7 +45,7 @@ Flags marked `EST` are model estimates. Country oil balances are approximate pre
 
 ### Soil Resilience Planner
 
-`soil.html` ranks the methods for a country or a custom farm (climate, crop, water, farm size, livestock, soil problems), splits them into this season, 1 to 3 years and 5+ years, checks which nutrients the plan leaves uncovered, and lists system-level moves triggered by the country's fertiliser import and Hormuz exposure. Link straight to a country with its ISO numeric code, for example `soil.html#c356` for India.
+`soil.html` ranks the methods for a country or a custom farm (climate, crop, water, farm size, livestock, soil problems), splits them into this season, 1 to 3 years and 5+ years, checks which nutrients the plan leaves uncovered, and lists system-level moves triggered by the country's fertiliser import and Hormuz exposure. It also takes a land type (ordinary cropland or one of eight marginal land types), shows the conversion pathway first and matches restoration projects. Link straight to a country with its ISO numeric code, a land type, or both: `soil.html#c356`, `soil.html#land-ultramafic`, `soil.html#c036_land-saline`.
 
 ### Live data feed
 

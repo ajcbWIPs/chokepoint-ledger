@@ -20,7 +20,9 @@
     { y: 5, t: "Five years and beyond", d: "Long-lived systems that compound" }
   ];
 
-  const ctx = { country: "356", cl: "humid", crop: "rice", water: "paddy", scale: "small", live: 1, prob: new Set(["lowN", "lowP", "acid"]) };
+  const LAND = [["farm", "Ordinary cropland"], ...S.land.map((l) => [l.id, l.name])];
+  const CL_OF_PROJECT = { loess: "temperate", fmnr: "dry", abreha: "highland", ggw: "dry", kubuqi: "dry", baydha: "dry", sodicIndia: "humid", waSalt: "dry", icba: "dry", sundrop: "dry", albania: "temperate", sabah: "humid", saltPotato: "dry" };
+  const ctx = { land: "farm", country: "356", cl: "humid", crop: "rice", water: "paddy", scale: "small", live: 1, prob: new Set(["lowN", "lowP", "acid"]) };
 
   // ---------- country defaults ----------
   const countries = Object.entries(D.countries).filter(([id]) => S.context[id]).sort((a, b) => a[1].n.localeCompare(b[1].n));
@@ -53,7 +55,15 @@
       render();
     }));
   }
+  $("#landtype").innerHTML = LAND.map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
+  $("#landtype").onchange = (e) => { ctx.land = e.target.value; setHash(); render(); };
+  function setHash() {
+    const parts = []; if (ctx.country) parts.push("c" + ctx.country); if (ctx.land !== "farm") parts.push("land-" + ctx.land);
+    try { history.replaceState(null, "", parts.length ? "#" + parts.join("_") : location.pathname); } catch (err) { /* sandboxed viewers */ }
+  }
   function drawForm() {
+    $("#landtype").value = ctx.land;
+    $("#landHint").textContent = ctx.country && S.saltTop.includes(ctx.country) && ctx.land === "farm" ? `${D.countries[ctx.country].n} is one of ten countries holding about 70% of the world's salt-affected soils.` : ctx.land !== "farm" ? "The plan below shows a conversion pathway first, then the soil methods that work once the land is stabilised." : "";
     $("#country").value = ctx.country;
     $("#crop").value = ctx.crop;
     chips("#f-cl", "cl"); chips("#f-water", "water"); chips("#f-scale", "scale"); chips("#f-live", "live"); chips("#f-prob", "prob", true);
@@ -61,7 +71,7 @@
   $("#country").onchange = (e) => {
     ctx.country = e.target.value;
     if (ctx.country) Object.assign(ctx, defaultsFor(ctx.country));
-    try { history.replaceState(null, "", ctx.country ? `#c${ctx.country}` : location.pathname); } catch (err) { /* sandboxed viewers */ }
+    setHash();
     render();
   };
   $("#crop").onchange = (e) => { ctx.crop = e.target.value; render(); };
@@ -79,7 +89,9 @@
     const fitScale = m.scale.includes(ctx.scale) ? 1 : ctx.scale === "large" && m.labour === 3 ? 0.2 : 0.55;
     const probs = [...ctx.prob];
     const need = probs.length ? probs.reduce((s, p) => s + m.provides[PROB_NUT[p]] / 3, 0) / probs.length : (m.provides.N + m.provides.P + m.provides.OM) / 9;
-    const v = Math.pow(need, 0.8) * fitCl * fitCrop * fitWater * fitScale * STRENGTH[m.strength];
+    let v = Math.pow(need, 0.8) * fitCl * fitCrop * fitWater * fitScale * STRENGTH[m.strength];
+    const landBoost = { saline: ["manure", "ca", "biochar"], sodic: ["manure", "rotation", "azolla"], degraded: ["zai", "trees", "ca", "manure"], dune: ["zai", "trees", "manure"], wetland: ["chinampa", "waru", "ricefish"], acid: ["biochar", "ricefish", "azolla"], ultramafic: ["manure", "biochar"], tailings: ["manure", "biochar"] };
+    if (ctx.land !== "farm" && (landBoost[ctx.land] || []).includes(m.id)) v = Math.min(1, v * 1.35);
     const reasons = [];
     probs.filter((p) => m.provides[PROB_NUT[p]] >= 2).forEach((p) => reasons.push(`${m.provides[PROB_NUT[p]] === 3 ? "Main fix" : "Helps"} for ${OPTS.prob[p].toLowerCase()} soil`));
     if (fitCrop === 1 && m.crops.length < 7) reasons.push(`Proven with ${CROP_LABEL[ctx.crop]}`);
@@ -175,8 +187,41 @@
     $("#sys").innerHTML = list.map((s) => `<li><b>${s.name}</b><span>${s.why}</span>${why[s.when] ? `<span class="here">Here: ${why[s.when]}</span>` : ""}</li>`).join("");
   }
 
+  function drawConversion() {
+    const sec = $("#convSec");
+    if (ctx.land === "farm") { sec.hidden = true; return; }
+    sec.hidden = false;
+    const l = S.land.find((x) => x.id === ctx.land);
+    $("#convNote").textContent = l.scale;
+    let econ = "";
+    if (l.id === "ultramafic") {
+      econ = `<p class="gap ok"><b>Agromining check.</b> At US$16 to 20/kg nickel, a metal crop breaks even at about 15 to 30 kg Ni/ha a year. Optimised Albanian plots reached 105 to 139 kg/ha. Open the Ledger's Soil tab for the value at today's nickel price.</p>`;
+    }
+    $("#conv").innerHTML = `<div class="landpanel">
+      <div class="lp-grid"><div><p><b>How to recognise it.</b> ${l.test}</p><p style="margin-top:8px"><b>Why it fails.</b> ${l.constraint}</p></div><div><b>What it can produce</b><p>${l.products}</p></div></div>
+      <ol class="stagesrow">${l.stages.map((s, i) => `<li><span class="sn">STAGE ${i + 1}</span><b>${s.t}</b><span>${s.d}</span></li>`).join("")}</ol>
+      <div class="lp-grid"><div><b>Plants that work</b><table class="plants"><tbody>${l.plants.map(([p, r]) => `<tr><td>${p}</td><td>${r}</td></tr>`).join("")}</tbody></table></div>
+      <div><p class="lim"><b>Watch for.</b> ${l.warn}</p>${econ}</div></div></div>`;
+  }
+
+  function drawProjects() {
+    const scored = S.projects.map((p) => {
+      let s = 0;
+      if (ctx.land !== "farm" && p.land.includes(ctx.land)) s += 3;
+      if (ctx.country && p.cc === ctx.country) s += 2;
+      if (CL_OF_PROJECT[p.id] === ctx.cl) s += 1;
+      if (ctx.land === "farm" && p.land.includes("degraded") && ctx.prob.has("lowOM")) s += 1;
+      return { p, s };
+    }).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 3);
+    $("#projs").innerHTML = scored.length ? scored.map(({ p }) => `<article class="pcard">
+      <div><h3>${p.name}</h3><div class="origin">${p.where} · ${p.years}</div></div>
+      <div class="mstat proj">${p.stat}<small>${p.statNote}</small></div>
+      <ul class="how">${p.how.map((x) => `<li>${x}</li>`).join("")}</ul>
+      <p class="lesson"><b>Lesson.</b> ${p.lesson}</p></article>`).join("") : `<p class="note">No close match. Browse all projects in the Ledger's Soil tab.</p>`;
+  }
+
   function drawSources() {
-    const used = new Set(S.methods.flatMap((m) => m.src));
+    const used = new Set([...S.methods.flatMap((m) => m.src), ...S.projects.flatMap((p) => p.src), "faoSalt"]);
     $("#psources").innerHTML = "Sources: " + [...used].map((k) => S.sources[k]).filter(Boolean).map((s) => `<a href="${s.u}" target="_blank" rel="noopener">${s.t}</a>`).join(" · ");
   }
 
@@ -187,12 +232,20 @@
     drawPlan(scored);
     drawCoverage(scored);
     drawSystem();
+    drawConversion();
+    drawProjects();
   }
 
   // ---------- start ----------
-  const h = (location.hash || "").replace("#c", "");
-  if (h && D.countries[h] && S.context[h]) ctx.country = h;
-  Object.assign(ctx, defaultsFor(ctx.country));
+  const hparts = (location.hash || "").replace("#", "").split("_");
+  let hashLand = null;
+  hparts.forEach((p) => {
+    if (/^c\d{3}$/.test(p) && D.countries[p.slice(1)] && S.context[p.slice(1)]) ctx.country = p.slice(1);
+    if (p.startsWith("land-") && S.land.find((l) => l.id === p.slice(5))) hashLand = p.slice(5);
+  });
+  if (hashLand && !hparts.some((p) => /^c\d{3}$/.test(p))) ctx.country = "";
+  if (ctx.country) Object.assign(ctx, defaultsFor(ctx.country));
+  if (hashLand) ctx.land = hashLand;
   drawSources();
   render();
   window.plannerReady = true;

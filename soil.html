@@ -28,6 +28,11 @@
         <select id="country"></select>
         <span class="note">Sets the defaults below from the Ledger dataset. Change anything.</span>
       </div>
+      <div class="field">
+        <label for="landtype">Land type</label>
+        <select id="landtype"></select>
+        <span class="note" id="landHint"></span>
+      </div>
       <div class="field"><span class="lab">Climate</span><div class="chips" id="f-cl" role="radiogroup" aria-label="Climate"></div></div>
       <div class="field">
         <label for="crop">Main crop</label>
@@ -46,6 +51,11 @@
     <main class="presults" aria-live="polite">
       <section class="exposure" id="exposure"></section>
 
+      <section id="convSec" hidden>
+        <div class="sec-head"><h2>Conversion pathway</h2><span class="note" id="convNote"></span></div>
+        <div id="conv"></div>
+      </section>
+
       <section>
         <div class="sec-head"><h2>Your plan</h2><span class="note" id="planNote"></span></div>
         <div class="stages" id="stages"></div>
@@ -55,6 +65,11 @@
         <div class="sec-head"><h2>Nutrient check</h2><span class="note">Which nutrients the top picks cover, and what is still missing</span></div>
         <div class="tscroll"><table id="covTable"></table></div>
         <div id="gaps"></div>
+      </section>
+
+      <section>
+        <div class="sec-head"><h2>Restoration projects to learn from</h2><span class="note">Matched on land type, country and climate</span></div>
+        <div class="pgrid" id="projs"></div>
       </section>
 
       <section>

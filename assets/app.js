@@ -106,7 +106,7 @@
   }
   fetch("data/live.json", { cache: "no-store" })
     .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-    .then((L) => { L.byId = Object.fromEntries(L.series.map((s) => [s.id, s])); window.LIVE = L; drawTape(L); drawLive(L); drawCrops(); })
+    .then((L) => { L.byId = Object.fromEntries(L.series.map((s) => [s.id, s])); window.LIVE = L; drawTape(L); drawLive(L); drawCrops(); if (typeof drawLand === "function") drawLand(); })
     .catch(() => {}); // no feed (opened from disk, or first deploy pending): page uses the curated figures
 
   // ---------- map ----------
@@ -251,7 +251,7 @@
     const el = $("#detail");
     const id = state.sel;
     if (state.highlight && !id && !state.highlight.lanes.length) {
-      el.innerHTML = `<span class="eyebrow">Soil methods</span><p class="note">Green dots mark where each fertiliser-free method was developed or proven. Click one to read about it. Supply lines and chokepoints are faded while the dots are shown.</p><button class="btn" type="button" id="clearHl">Show supply lines again</button>`;
+      el.innerHTML = soilState.sites === "projects" ? `<span class="eyebrow">Land restoration projects</span><p class="note">Blue diamonds mark restoration and land conversion projects with measured results. Click one to read about it. Supply lines and chokepoints are faded while they are shown.</p><button class="btn" type="button" id="clearHl">Show supply lines again</button>` : `<span class="eyebrow">Soil methods</span><p class="note">Green dots mark where each fertiliser-free method was developed or proven. Click one to read about it. Supply lines and chokepoints are faded while the dots are shown.</p><button class="btn" type="button" id="clearHl">Show supply lines again</button>`;
       $("#clearHl").onclick = () => { soilState.sites = false; drawSites(); state.highlight = null; refresh(); };
       return;
     }
@@ -479,7 +479,7 @@
   const S = window.SOIL;
   const NUT_LABEL = { N: "Nitrogen", P: "Phosphorus", K: "Potassium", OM: "Organic matter", pH: "Fixes acidity", water: "Water" };
   const CL_LABEL = { humid: "Humid tropics", dry: "Dry and semi-arid", temperate: "Temperate", highland: "Highland" };
-  const soilState = { nut: "All", cl: "All", sites: false };
+  const soilState = { nut: "All", cl: "All", sites: false, land: "All" };
   const srcLinks = (ids) => ids.map((k) => S.sources[k] || D.sources[k]).filter(Boolean).map((s) => `<a href="${s.u}" target="_blank" rel="noopener">${s.t}</a>`).join(" · ");
 
   function drawBalance() {
@@ -529,28 +529,99 @@
     drawSites();
   }
 
+  const PROJ_SHORT = { loess: "Loess Plateau", fmnr: "Niger FMNR", abreha: "Abreha We Atsbeha", ggw: ["Great Green Wall", "left"], kubuqi: ["Kubuqi", "left"], baydha: "Al Baydha",
+    sodicIndia: "Gypsum reclamation", waSalt: ["WA saltland", "left"], icba: "ICBA", sundrop: "Sundrop Farms", albania: "Albania agromining", sabah: "Sabah metal crops", saltPotato: ["Salt potatoes", "left"] };
+  S.projects.forEach((p) => { const s = PROJ_SHORT[p.id]; p.short = Array.isArray(s) ? s[0] : s; p.lab = Array.isArray(s) ? s[1] : null; p.kind = "project"; });
+  S.methods.forEach((m) => (m.kind = "method"));
+  function flashCard(id) {
+    setTab("soil");
+    const el = document.getElementById(id); if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" }); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1600);
+  }
   function drawSites() {
-    const data = soilState.sites ? S.methods.filter((m) => m.at) : [];
-    const sel = siteG.selectAll("g.site").data(data, (d) => d.id).join((enter) => {
-      const g = enter.append("g").attr("class", "site");
-      g.append("circle"); g.append("text");
+    const data = soilState.sites === "methods" ? S.methods.filter((m) => m.at) : soilState.sites === "projects" ? S.projects : [];
+    const sel = siteG.selectAll("g.site").data(data, (d) => d.kind + d.id).join((enter) => {
+      const g = enter.append("g").attr("class", (d) => "site " + d.kind);
+      g.append((d) => document.createElementNS("http://www.w3.org/2000/svg", d.kind === "project" ? "rect" : "circle")); g.append("text");
       return g;
     });
     sel.attr("transform", (d) => `translate(${proj(d.at)})`)
-      .on("mousemove", (e, d) => showTip(e, `<b>${d.name}</b><br>${d.origin}<br><span class="mono">${d.stat}</span>`))
+      .on("mousemove", (e, d) => showTip(e, d.kind === "project" ? `<b>${d.name}</b><br>${d.where}, ${d.years}<br><span class="mono">${d.stat}</span>` : `<b>${d.name}</b><br>${d.origin}<br><span class="mono">${d.stat}</span>`))
       .on("mouseleave", hideTip)
-      .on("click", (e, d) => { setTab("soil"); const el = document.getElementById("m-" + d.id); el.scrollIntoView({ behavior: "smooth", block: "start" }); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1600); });
+      .on("click", (e, d) => flashCard((d.kind === "project" ? "p-" : "m-") + d.id));
     sel.select("circle").attr("r", 5 / zoomK);
-    sel.select("text").text((d) => d.short || d.name).attr("text-anchor", (d) => (d.lab === "left" ? "end" : "start")).style("font-size", 10 / zoomK + "px").attr("dx", (d) => (d.lab === "left" ? -7 : 7) / zoomK).attr("dy", 3.5 / zoomK);
+    sel.select("rect").attr("x", -5 / zoomK).attr("y", -5 / zoomK).attr("width", 10 / zoomK).attr("height", 10 / zoomK).attr("transform", "rotate(45)");
+    sel.select("text").text((d) => d.short || d.name).attr("text-anchor", (d) => (d.lab === "left" ? "end" : "start")).style("font-size", 10 / zoomK + "px").attr("dx", (d) => (d.lab === "left" ? -8 : 8) / zoomK).attr("dy", 3.5 / zoomK);
     chokeG.style("display", soilState.sites ? "none" : null);
-    $("#soilSites").textContent = soilState.sites ? "Hide method origins on the map" : "Show where each method comes from";
+    $("#soilSites").textContent = soilState.sites === "methods" ? "Hide method origins" : "Show where each method comes from";
+    $("#projSites").textContent = soilState.sites === "projects" ? "Hide projects on the map" : "Show the projects on the map";
   }
-  $("#soilSites").onclick = () => {
-    soilState.sites = !soilState.sites; drawSites();
-    if (soilState.sites) { state.highlight = { crop: "soil methods", lanes: [] }; refresh(); zoomReset(); document.querySelector(".desk").scrollIntoView({ behavior: "smooth", block: "start" }); }
+  function toggleSites(kind) {
+    soilState.sites = soilState.sites === kind ? false : kind; drawSites();
+    if (soilState.sites) { state.highlight = { crop: "soil " + kind, lanes: [] }; refresh(); zoomReset(); document.querySelector(".desk").scrollIntoView({ behavior: "smooth", block: "start" }); }
     else { state.highlight = null; refresh(); }
-  };
-  drawBalance(); drawSoil();
+  }
+  $("#soilSites").onclick = () => toggleSites("methods");
+  $("#projSites").onclick = () => toggleSites("projects");
+
+  // restoration projects
+  function drawProjects() {
+    const f = soilState.land;
+    const list = S.projects.filter((p) => f === "All" || p.land.includes(f));
+    $("#projCards").innerHTML = list.map((p) => `<article class="pcard" id="p-${p.id}">
+      <div class="mhead"><div><h3>${p.name}</h3><div class="origin">${p.where} · ${p.years}</div></div></div>
+      <div class="mstat proj">${p.stat}<small>${p.statNote}</small></div>
+      <dl class="pdl"><dt>Scale</dt><dd>${p.scale}</dd><dt>Cost</dt><dd>${p.cost}</dd></dl>
+      <ul class="how">${p.how.map((h) => `<li>${h}</li>`).join("")}</ul>
+      <p class="lesson"><b>Lesson.</b> ${p.lesson}</p>
+      <div class="nuts">${p.land.map((l) => `<button type="button" class="nut landlink" data-l="${l}">${S.land.find((x) => x.id === l).name}</button>`).join("")}</div>
+      <div class="srcs">${srcLinks(p.src)}</div></article>`).join("");
+    $("#projCards").querySelectorAll(".landlink").forEach((b) => (b.onclick = () => { soilState.land = b.dataset.l; drawLand(); drawProjects(); document.getElementById("landBox").scrollIntoView({ behavior: "smooth", block: "start" }); }));
+  }
+
+  // marginal land conversion
+  function nickelPrice() {
+    const s = window.LIVE && window.LIVE.byId && window.LIVE.byId.NICKEL;
+    return s ? { v: s.latest, d: s.date, live: true } : { v: 16324, d: "2026-09", live: false };
+  }
+  function drawLand() {
+    $("#landChips").innerHTML = [["All", "All land types"], ...S.land.map((l) => [l.id, l.name])].map(([k, t]) => `<button type="button" class="chip" data-k="${k}" aria-pressed="${soilState.land === k}">${t}</button>`).join("");
+    $("#landChips").querySelectorAll(".chip").forEach((b) => (b.onclick = () => { soilState.land = b.dataset.k; drawLand(); drawProjects(); }));
+    const el = $("#landDetail");
+    if (soilState.land === "All") {
+      el.innerHTML = `<div class="landgrid">${S.land.map((l) => `<button type="button" class="landtile" data-k="${l.id}"><b>${l.name}</b><span>${l.stages[1].d}</span><span class="go">Open pathway</span></button>`).join("")}</div>`;
+      el.querySelectorAll(".landtile").forEach((b) => (b.onclick = () => { soilState.land = b.dataset.k; drawLand(); drawProjects(); }));
+      return;
+    }
+    const l = S.land.find((x) => x.id === soilState.land);
+    const ex = l.projects.map((id) => S.projects.find((p) => p.id === id)).filter(Boolean);
+    let econ = "";
+    if (l.id === "ultramafic") {
+      const np = nickelPrice(), perKg = np.v / 1000;
+      const rows = [["Basic management", 25], ["Break-even zone", 22.5], ["Optimised (Albania)", 105], ["Best plot (Albania)", 139]];
+      const max = 139 * perKg;
+      econ = `<div class="econ"><h4>Agromining value per hectare at today's nickel price</h4>
+        <p class="note">Nickel ${np.live ? "World Bank monthly average" : "reference price"}: $${d3.format(",.0f")(np.v)}/t (${np.d}). Value of contained nickel only, before harvest, burning and refining costs. Break-even in the literature is about 15 to 30 kg Ni/ha a year.</p>
+        ${rows.map(([n, kg]) => `<div class="erow"><span>${n}</span><div class="bbar"><span style="width:${(kg * perKg / max) * 100}%;background:${kg < 30 ? "var(--s-watch)" : "var(--s-open)"}"></span></div><span class="mono">${kg} kg · $${d3.format(",.0f")(kg * perKg)}</span></div>`).join("")}
+      </div>`;
+    }
+    el.innerHTML = `<div class="landpanel">
+      <div class="lp-head"><div><span class="eyebrow">Conversion pathway</span><h3>${l.name}</h3></div><p class="note">${l.scale}</p></div>
+      <div class="lp-grid">
+        <div><p><b>How to recognise it.</b> ${l.test}</p><p style="margin-top:8px"><b>Why it fails.</b> ${l.constraint}</p></div>
+        <div><b>Products</b><p>${l.products}</p></div>
+      </div>
+      <ol class="stagesrow">${l.stages.map((s, i) => `<li><span class="sn">${i + 1}</span><b>${s.t}</b><span>${s.d}</span></li>`).join("")}</ol>
+      <div class="lp-grid">
+        <div><b>Plants that work</b><table class="plants"><tbody>${l.plants.map(([p, r]) => `<tr><td>${p}</td><td>${r}</td></tr>`).join("")}</tbody></table></div>
+        <div>${econ}<p class="lim" style="margin-top:10px"><b>Watch for.</b> ${l.warn}</p></div>
+      </div>
+      ${ex.length ? `<div><b>Proven at</b> <span class="nuts">${ex.map((p) => `<button type="button" class="nut l2 projlink" data-p="${p.id}">${p.name}</button>`).join("")}</span></div>` : ""}
+      <a class="btn btn-go" href="soil.html#land-${l.id}" style="justify-self:start">Plan for this land type</a>
+    </div>`;
+    el.querySelectorAll(".projlink").forEach((b) => (b.onclick = () => flashCard("p-" + b.dataset.p)));
+  }
+  drawBalance(); drawSoil(); drawProjects(); drawLand();
 
   // ---------- refining balance ----------
   function drawBal() {
@@ -622,7 +693,8 @@
     if (o.select !== undefined) state.sel = o.select;
     if (o.highlightCrop !== undefined) state.highlight = o.highlightCrop ? { crop: o.highlightCrop, lanes: C.list.find((c) => c.c === o.highlightCrop).lanes } : null;
     if (o.crop) state.crop = o.crop;
-    if (o.sites !== undefined) { soilState.sites = !!o.sites; drawSites(); }
+    if (o.sites !== undefined) { soilState.sites = o.sites === true ? "methods" : o.sites; drawSites(); }
+    if (o.land !== undefined) { soilState.land = o.land; drawLand(); drawProjects(); }
     if (o.tab) setTab(o.tab);
     if (o.view !== undefined) document.body.classList.toggle("view-panel", o.view === "panel");
     else if (o.tab) document.body.classList.add("view-panel");
