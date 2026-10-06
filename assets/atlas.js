@@ -63,6 +63,7 @@
     if (s.phh2o != null && s.phh2o < 4.6 && c.elev != null && c.elev < 15) return ["acid", "Very acid topsoil near sea level. Check for acid sulfate soil before draining."];
     if (s.phh2o != null && s.phh2o > 8.4) return ["sodic", `Topsoil pH ${fmt1(s.phh2o)}. Alkaline, possibly sodic. A sodium test (ESP) will confirm.`];
     if (s.sand != null && s.sand > 80 && c.rain != null && c.rain < 300) return ["dune", `${Math.round(s.sand)}% sand with ${Math.round(c.rain)} mm of rain.`];
+    if (c.rain != null && c.rain < 200) return ["dune", `Only ${Math.round(c.rain)} mm of rain last year. Desert conditions, so nothing grows without water harvesting or irrigation.`];
     if (s.soc != null && s.soc < 6 && c.rain != null && c.rain < 600) return ["degraded", `Low organic carbon (${fmt1(s.soc)} g/kg) in a dry climate.`];
     return ["farm", "No marginal-land flags at this point."];
   }

@@ -27,7 +27,7 @@ jobs:
                       errs = []
                       pg.on("pageerror", lambda e: errs.append(str(e)))
                       pg.on("console", lambda m: errs.append(m.text) if m.type == "error" else None)
-                      await pg.goto(BASE + url + "?v=2", wait_until="domcontentloaded")
+                      await pg.goto(BASE + url.replace("#", "?v=3#"), wait_until="domcontentloaded")
                       await pg.wait_for_timeout(wait)
                       ready = await pg.evaluate("!!window.atlasReady")
                       crops = await pg.eval_on_selector_all("#cropList .croprow b", "els=>els.map(e=>e.textContent)")
@@ -35,7 +35,7 @@ jobs:
                       await pg.screenshot(path=f"shots/{name}.png", full_page=(w < 600))
                       log.append(f"{name}: ready={ready} crops={crops[:6]} readouts={ro.replace(chr(10),' | ')} errors={errs[:5]}")
                   pg = await b.new_page(viewport={"width": 1400, "height": 1000})
-                  await pg.goto(BASE + "land.html?v=2"); await pg.wait_for_timeout(9000)
+                  await pg.goto(BASE + "land.html?v=3"); await pg.wait_for_timeout(9000)
                   await pg.mouse.click(520, 600); await pg.wait_for_timeout(8000)
                   log.append("clicked: " + (await pg.inner_text("#spotName")) + " | " + (await pg.inner_text("#readouts")).replace("\n", " | ") + " | crops=" + str(await pg.eval_on_selector_all("#cropList .croprow b", "els=>els.slice(0,5).map(e=>e.textContent)")))
                   await pg.screenshot(path="shots/atlas_click.png")
