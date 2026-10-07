@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Australian Soil Map</title>
+<meta name="description" content="A 5 km grid of Australian soil, climate, dryland salinity and land cover, scored against 34 crops and land uses to suggest what to grow and where. Click any cell for the full ranking and what limits each option.">
+<link rel="stylesheet" href="https://js.arcgis.com/4.34/esri/themes/light/main.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
+<link rel="stylesheet" href="https://js.arcgis.com/4.34/esri/themes/dark/main.css" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <p class="eyebrow">Australia / 5 km crop suitability grid</p>
+      <h1>Australian Soil Map</h1>
+      <p class="lede">Every 5 km cell on the continent carries topsoil pH, clay, sand and organic carbon, seasonal rainfall and temperature, the national dryland salinity mapping and satellite land cover. The map scores 34 crops and land uses against those numbers and shows the best fit for each cell. Pick a crop to see where it suits, or click a cell to see the full ranking and what holds each option back.</p>
+    </div>
+    <div class="meta">
+      <span class="eyebrow">Companion to the Chokepoint Ledger</span>
+      <nav class="sitenav" aria-label="Pages"><a href="index.html">Ledger</a><a href="soil.html">Soil Resilience Planner</a><a href="land.html">Land Atlas</a><a href="au.html" aria-current="page">Australia</a></nav>
+    </div>
+  </header>
+
+  <section class="auctl" aria-label="Map controls">
+    <div class="field">
+      <label for="modeSel">Show</label>
+      <select id="modeSel">
+        <optgroup label="Suggestions">
+          <option value="best">Best suggestion per cell</option>
+          <option value="crop">Suitability for one crop</option>
+        </optgroup>
+        <optgroup label="Soil and climate">
+          <option value="ph">Topsoil pH</option>
+          <option value="clay">Clay content</option>
+          <option value="soc">Organic carbon</option>
+          <option value="rain">Annual rainfall</option>
+          <option value="rainW">April to October rainfall</option>
+          <option value="rainS">November to March rainfall</option>
+          <option value="sal">Dryland salinity (NLWRA)</option>
+          <option value="crops">Current cropping share</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="field" id="cropField">
+      <label for="cropSel">Crop</label>
+      <select id="cropSel"></select>
+    </div>
+    <div class="field" id="groupField">
+      <label for="groupSel">Choose from</label>
+      <select id="groupSel"></select>
+    </div>
+    <div class="auchecks">
+      <label class="check"><input type="checkbox" id="irr"> Irrigation available <span class="note">Lifts the rain limit for crops that are commonly irrigated</span></label>
+      <label class="check"><input type="checkbox" id="fix"> Lime or gypsum applied <span class="note">Topsoil pH held between 5.8 and 8.3</span></label>
+      <label class="check"><input type="checkbox" id="conv" checked> Count the cost of clearing <span class="note">Crops rank lower on land that is bush or rangeland today</span></label>
+      <label class="check"><input type="checkbox" id="ultra"> Treat ultramafic belts as serpentine soil <span class="note">Hatched areas. Off by default because ultramafic rock is patchy inside them</span></label>
+      <label class="check"><input type="checkbox" id="farm" checked> Hide forest, towns and water <span class="note">Cells where these cover most of the land</span></label>
+    </div>
+  </section>
+
+  <div class="atlas">
+    <div class="atlas-map">
+      <div class="presets" id="districts" aria-label="Jump to a district"></div>
+      <div id="viewDiv" role="application" aria-label="Map of Australia. Click a cell to see its crop ranking."></div>
+      <div class="maplegend" id="legend"></div>
+      <p class="note" id="status">Loading the grid…</p>
+    </div>
+
+    <aside class="atlas-side" aria-live="polite">
+      <section class="spot">
+        <span class="eyebrow">Selected cell</span>
+        <h2 id="cellName">Click the map or pick a district</h2>
+        <p class="note" id="cellCoords"></p>
+        <div class="readouts" id="cellRo"></div>
+      </section>
+      <section class="overrides" id="ecBox" hidden>
+        <div class="field">
+          <label for="ecIn">Root-zone salinity for this cell, ECe <span class="mono" id="ecVal"></span></label>
+          <input type="range" id="ecIn" min="0" max="40" step="0.5" value="1">
+          <span class="note">Set from the salinity map. Move it to match a soil test or an EM38 survey.</span>
+        </div>
+      </section>
+      <section>
+        <div class="sec-head"><h2>What to grow here</h2></div>
+        <div id="cellCrops"><p class="note">The ranking for the cell you click appears here.</p></div>
+      </section>
+      <section id="cellLinks" class="exports" hidden></section>
+    </aside>
+  </div>
+
+  <section class="ausec">
+    <div class="sec-head"><h2 id="tallyHead">Where the suggestions land, by state</h2></div>
+    <p class="note" id="tallyNote"></p>
+    <div class="tscroll"><table id="tally"></table></div>
+  </section>
+
+  <section class="ausec">
+    <div class="sec-head"><h2>How the map is built</h2></div>
+    <div class="method2">
+      <p>The grid is 822 by 700 cells at 0.05 degrees, about 5 km. Soil values are means of every 250 m SoilGrids pixel in the cell (or every 90 m pixel from the TERN Soil and Landscape Grid when the build has a TERN key) for 5 to 15 cm, with organic carbon at 0 to 5 cm. Climate comes from WorldClim 2.1 monthly normals, split into an April to October winter season and a November to March summer season so winter grains, summer grains and perennials are each judged on the rain they actually use.</p>
+      <p>Each crop gets a factor between 0 and 1 for seasonal rain, seasonal temperature, frost, pH, salinity and soil texture. Salinity uses the FAO yield equation, yield = 100 minus b times (ECe minus T), with ECe set to 4 dS/m where the NLWRA mapped a salinity hazard by 2050 and 8 dS/m where land was already affected in 2000. Ultramafic belts are drawn as hatched outlines. With the serpentine option on, cells inside them cut food crops back hard and allow native nickel accumulators. The suitability score is the product of the factors. The best suggestion per cell multiplies that score by a rough value weight, so a cell that suits both wheat and saltbush shows wheat. Where satellite land cover shows a cell is under 5% cropped and mostly bush or rangeland, crops carry a further 40% discount for the clearing, approvals and infrastructure they would need, so grazing or tree crops win unless cropping is clearly better. Rain needs also rise with heat, so seasonal rain is scaled down in hot seasons and up in cool ones.</p>
+      <p>Limits worth knowing: the soil models smooth out paddock-scale variation, salinity is mapped from 2001 regional assessments, subsoil constraints such as boron and sodicity at depth are not in the grid, and seasonal normals hide drought risk. Treat the map as a first cut for where to look, then test the soil.</p>
+    </div>
+  </section>
+
+  <section class="foot">
+    <span id="built"></span>
+    <span id="ausources"></span>
+  </section>
+</div>
+<script src="data/au_crops.js"></script>
+<script src="https://js.arcgis.com/4.34/"></script>
+<script src="assets/au.js"></script>
+</body>
+</html>

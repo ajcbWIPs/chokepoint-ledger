@@ -141,21 +141,37 @@ def salinity():
         for c in g.columns:
             if c != "geometry" and g[c].dtype == object and g[c].nunique() < 30:
                 log(f"    {c}: {g[c].value_counts().to_dict()}")
-        # Code 2 = mapped in 2000 (already at risk), 1 = projected by 2050.
-        code = np.full(len(g), 2, "uint8")
-        for c in g.columns:
-            if c == "geometry":
-                continue
-            vals = g[c].astype(str).str.lower()
-            if vals.str.contains("2050").any() or vals.str.contains("2020").any():
-                code = np.where(vals.str.contains("2000"), 2, 1).astype("uint8")
-                log(f"    using {c} for year coding")
-                break
+        for c in ["ASSESS_00", "ASSESS_20", "ASSESS_50", "AUS_SAL", "AUS_SALA", "SUBCLASS"]:
+            if c in g.columns:
+                log(f"    {c}: {g[c].astype(str).value_counts().head(12).to_dict()}")
+
+        def high(col):
+            v = g[col].astype(str).str.strip().str.lower()
+            h = v.str.contains("high") | v.isin(["h", "hr", "hh", "1", "y", "yes"])
+            if not h.any():  # unknown coding: anything assessed counts
+                h = ~v.isin(["", "0", "none", "nan", "n", "no", "low", "l"])
+            return h.to_numpy()
+        # Code 2 = high risk or hazard already in 2000, 1 = only by 2050.
+        code = np.zeros(len(g), "uint8")
+        if "ASSESS_50" in g.columns:
+            code[high("ASSESS_50")] = 1
+        if "ASSESS_20" in g.columns:
+            code[high("ASSESS_20") & (code == 0)] = 1
+        if "ASSESS_00" in g.columns:
+            code[high("ASSESS_00")] = 2
+        log(f"    coded polygons: 2000={(code == 2).sum()} later={(code == 1).sum()}")
+        keep = code > 0
+        g, code = g[keep], code[keep]
         shapes = [(geom, int(v)) for geom, v in zip(g.geometry, code) if geom is not None]
         # Draw 2050 first so 2000 overwrites.
         shapes.sort(key=lambda x: x[1])
-        lay = rasterize(shapes, out_shape=(NY, NX), transform=TF, fill=0, all_touched=False, dtype="uint8",
-                        merge_alg=rasterio.enums.MergeAlg.replace)
+        f = 5
+        fine = rasterize(shapes, out_shape=(NY * f, NX * f), transform=from_origin(W, N, RES / f, RES / f), fill=0,
+                         dtype="uint8", merge_alg=rasterio.enums.MergeAlg.replace).reshape(NY, f, NX, f)
+        f00 = (fine == 2).mean(axis=(1, 3))
+        fany = (fine > 0).mean(axis=(1, 3))
+        # A cell is flagged when a quarter or more of it falls in a high risk or hazard area.
+        lay = np.where(f00 >= 0.25, 2, np.where(fany >= 0.25, 1, 0)).astype("uint8")
         grid = np.maximum(grid, lay)
     log(f"  salinity cells: risk2000={(grid==2).sum()} by2050={(grid==1).sum()}")
     return grid

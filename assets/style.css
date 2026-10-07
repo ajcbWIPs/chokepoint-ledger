@@ -437,3 +437,28 @@ body.capture.portrait .legend { position: static; margin: 14px 16px; max-width: 
 .check { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: baseline; font-size: 0.84rem; }
 .check .note { grid-column: 2; }
 .check input { accent-color: var(--accent); }
+
+/* ---------- Australian Soil Map (au.html) ---------- */
+.auctl { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)) minmax(0, 1fr); gap: 14px 18px; margin-top: 20px; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; }
+.auchecks { display: grid; gap: 8px; }
+.auchecks .check .note { font-size: 0.74rem; }
+.ausec { margin-top: 34px; }
+.method2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; font-size: 0.88rem; color: var(--ink-2); }
+.method2 p { margin: 0; max-width: 70ch; }
+#legend button { all: unset; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; border-radius: 3px; padding: 1px 3px; }
+#legend button:hover, #legend button:focus-visible { outline: 1px solid var(--ink-2); }
+#legend i { border-radius: 2px; }
+#legend .ramp { width: 220px; height: 10px; border-radius: 2px; }
+#legend .rampwrap { display: grid; gap: 3px; font: 0.7rem var(--f-data); color: var(--muted); }
+#legend .rampwrap .ends { display: flex; justify-content: space-between; }
+#legend small { color: var(--muted); font-family: var(--f-data); }
+#tally td small { color: var(--muted); font-family: var(--f-data); margin-left: 4px; }
+#tally .sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+.lcbar { display: flex; height: 8px; border-radius: 2px; overflow: hidden; background: var(--line); margin-top: 4px; }
+.lcbar span { display: block; height: 100%; }
+.lim { font: 600 0.62rem/1 var(--f-data); letter-spacing: 0.05em; text-transform: uppercase; color: var(--s-elevated); }
+.facs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 10px; font-size: 0.7rem; color: var(--muted); }
+.facs span { display: grid; gap: 2px; }
+.facs .vbar { height: 4px; }
+@media (max-width: 1050px) { .auctl { grid-template-columns: repeat(2, minmax(0, 1fr)); } .auchecks { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .auctl { grid-template-columns: 1fr; } }
