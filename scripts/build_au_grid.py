@@ -132,7 +132,11 @@ def salinity():
     shp = [n for n in names if n.lower().endswith(".shp")]
     grid = np.zeros((NY, NX), "uint8")
     for s in shp:
-        g = gpd.read_file(f"zip://{z}!{s}").to_crs(4326)
+        g = gpd.read_file(f"zip://{z}!{s}")
+        if g.crs is None:
+            g = g.set_crs(4283)  # NLWRA data are GDA94 geographic
+        g = g.to_crs(4326)
+        log(f"    bounds {g.total_bounds.round(2).tolist()}")
         log(f"  {s}: {len(g)} features, columns={list(g.columns)}")
         for c in g.columns:
             if c != "geometry" and g[c].dtype == object and g[c].nunique() < 30:
