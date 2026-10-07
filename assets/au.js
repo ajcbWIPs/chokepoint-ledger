@@ -118,7 +118,7 @@
     else if (u > 0) ultra = C.ultraPenalty[c.g] ?? 0.5;
     // Monsoonal north: one short wet season with an erratic start. CSIRO's northern water resource
     // assessments found dryland annual cropping there high risk, so rainfed annuals take a cut.
-    if (!irrig && c.season === "s" && V.tS[i] > 26 && V.rainW[i] < 0.12 * V.rain[i]) rain *= 0.6;
+    if (!irrig && c.season === "s" && V.tW[i] > 20 && V.rainW[i] < 0.3 * V.rain[i]) rain *= 0.6;
     out.rain = rain; out.temp = temp; out.frost = frost; out.ph = phf; out.salt = salt; out.tex = tex; out.ultra = ultra; out.rv = rv; out.irrig = irrig;
     out.s = 100 * rain * temp * frost * phf * salt * tex * ultra;
     return out;
@@ -185,7 +185,7 @@
   const SALC = { 1: [240, 160, 64], 2: [180, 35, 24] };
   function cellRGBA(i) {
     if (!V.land[i]) return null;
-    if (st.farm && V.nonfarm[i] && (st.mode === "best" || st.mode === "crop")) return [120, 120, 120, 60];
+    if (st.farm && V.nonfarm[i] && (st.mode === "best" || st.mode === "crop")) return null;
     switch (st.mode) {
       case "best": {
         const b = best[i];
@@ -261,7 +261,7 @@
       const pct = (a) => { const p = (100 * a) / tot; return p < 1 ? "<1%" : Math.round(p) + "%"; };
       L.innerHTML = items.map(([k, a]) => `<button type="button" data-c="${CROPS[k].id}" title="Show suitability for ${CROPS[k].name}"><i style="background:${CROPS[k].col}"></i>${CROPS[k].name} <small>${pct(a)}</small></button>`).join("") +
         `<span><i style="background:#969696"></i>Nothing scores 25+ <small>${pct(area[254])}</small></span>` +
-        (st.farm ? `<span><i style="background:rgba(120,120,120,.3)"></i>Forest, towns, water</span>` : "");
+        (st.farm ? `<span><i style="background:transparent;border:1px dashed var(--muted)"></i>Left clear: forest, towns, water</span>` : "");
       L.querySelectorAll("button").forEach((b) => (b.onclick = () => { st.mode = "crop"; st.crop = b.dataset.c; syncForm(); refresh(); }));
     } else if (st.mode === "sal") {
       L.innerHTML = `<span><i style="background:rgb(180,35,24)"></i>Salt-affected or high risk in 2000 (scored at 8 dS/m)</span><span><i style="background:rgb(240,160,64)"></i>Forecast high risk by 2050 (4 dS/m)</span>`;
@@ -450,6 +450,7 @@
       pickCell(d.at[0], d.at[1], d.name);
     }));
 
+    view.when(() => view.goTo(new Extent({ xmin: 112, ymin: -44.5, xmax: 154.5, ymax: -9.5, spatialReference: { wkid: 4326 } }), { animate: false }).catch(() => {}));
     load().then(() => {
       G.ultraPoly.forEach((ring, k) => ultraL.add(new Graphic({
         geometry: new Polygon({ rings: [[...ring, ring[0]]], spatialReference: { wkid: 4326 } }),
@@ -477,5 +478,6 @@
       refresh();
     };
     window.auPick = pickCell;
+    window.auDebug = () => ({ V, G, best, CROPS });
   });
 })();
