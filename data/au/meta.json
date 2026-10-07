@@ -211,21 +211,24 @@
  "landCells": 280829,
  "log": [
   "soil: SoilGrids 2.0",
-  "  warped phh2o_5-15cm_mean.vrt in 12s, valid=0.49, median=73.44",
-  "  warped clay_5-15cm_mean.vrt in 15s, valid=0.49, median=246.34",
-  "  warped sand_5-15cm_mean.vrt in 14s, valid=0.49, median=625.14",
-  "  warped soc_0-5cm_mean.vrt in 14s, valid=0.49, median=133.64",
-  "  warped cec_5-15cm_mean.vrt in 16s, valid=0.49, median=219.50",
+  "  warped phh2o_5-15cm_mean.vrt in 17s, valid=0.49, median=73.44",
+  "  warped clay_5-15cm_mean.vrt in 23s, valid=0.49, median=246.34",
+  "  warped sand_5-15cm_mean.vrt in 23s, valid=0.49, median=625.14",
+  "  warped soc_0-5cm_mean.vrt in 22s, valid=0.49, median=133.64",
+  "  warped cec_5-15cm_mean.vrt in 21s, valid=0.49, median=219.50",
   "climate: WorldClim 2.1",
   "  worldclim prec ok, median Jan=52.8",
   "  worldclim tavg ok, median Jan=28.9",
   "salinity: NLWRA 2001",
   "  dsa zip: ['dsa__r9nnd_00211a00es_geo___/', 'dsa__r9nnd_00211a00es_geo___/dsa__r9nnd_00211a00es_geo___.shp', 'dsa__r9nnd_00211a00es_geo___/dsa__r9nnd_00211a00es_geo___.shx', 'dsa__r9nnd_00211a00es_geo___/dsa__r9nnd_00211a00es_geo___.dbf', 'dsa__r9nnd_00211a00es_geo___/dsa__r9nnd_00211a00es_geo___.cpg']",
-  "  salinity failed: ValueError('Cannot transform naive geometries.  Please set a crs on the object first.')",
+  "    bounds [114.93, -43.47, 153.56, -12.1]",
+  "  dsa__r9nnd_00211a00es_geo___/dsa__r9nnd_00211a00es_geo___.shp: 92824 features, columns=['AREA', 'PERIMETER', 'A_SAL_', 'A_SAL_ID', 'POLY_', 'SUBCLASS', 'SUBCLASS_', 'RINGS_OK', 'RINGS_NOK', 'STATE', 'ASSESS_00', 'ASSESS_20', 'ASSESS_50', 'AREA_00', 'AREA_20', 'AREA_50', 'AUS_SAL', 'AUS_SALA', 'geometry']",
+  "    using AREA for year coding",
+  "  salinity cells: risk2000=3 by2050=7829",
   "land cover: Esri Sentinel-2 10 m",
   "  land cover cells with crops>20%: 26300",
   "states: Natural Earth",
   "  states cells: {'NSW': 30896, 'VIC': 9607, 'QLD': 61418, 'SA': 37513, 'WA': 92158, 'TAS': 3324, 'NT': 47027, 'ACT': 128}",
-  "done in 126s, raw 12.1 MB, gz 1.91 MB"
+  "done in 159s, raw 12.1 MB, gz 1.92 MB"
  ]
 }
