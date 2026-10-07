@@ -1,0 +1,46 @@
+name: diag
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: |
+          mkdir -p shots
+          pip install -q rasterio requests numpy > /dev/null
+          python - <<'PY' > shots/probe.txt 2>&1
+          import requests, json, time, rasterio
+          A="https://esoil.io/TERNLandscapes/RasterProductsAPI/"
+          def g(u, **k):
+              t=time.time()
+              try:
+                  r=requests.get(u, timeout=40, headers={"Origin":"https://ajcbwips.github.io"}, **k)
+                  print("==",u[:160],r.status_code,"cors=",r.headers.get("access-control-allow-origin"),f"{time.time()-t:.1f}s")
+                  return r
+              except Exception as e: print("== FAIL",u[:160],e)
+          r=g(A+"QueryParameterValues?format=json&parameter=Attribute"); print(r.text[:3000] if r else "")
+          r=g(A+"ProductInfo?format=json&attribute=") 
+          if r: 
+              try:
+                  js=r.json(); print(len(js)); 
+                  for p in js: print(json.dumps(p)[:400])
+              except Exception as e: print(r.text[:4000])
+          for at in ["pH (Water)","Clay","Organic Carbon","Available Water Capacity","Depth of Soil","Sand","Effective Cation Exchange Capacity","Total Phosphorus"]:
+              r=g(A+"ProductInfo",params={"format":"json","attribute":at})
+              if r: print(r.text[:2500])
+          r=g(A+"Drill?format=json&verbose=false&COGPath=https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/30m/SOC/SOC_030_060_05_N_P_AU_TRN_N_20220727_30m.tif&latitude=-31.6&longitude=117.6"); print(r.text[:500] if r else "")
+          r=g("https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/"); print(r.text[:3000] if r else "")
+          r=g("https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/30m/SOC/SOC_030_060_05_N_P_AU_TRN_N_20220727_30m.tif", stream=True, )
+          try:
+              with rasterio.open("/vsicurl/https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/30m/SOC/SOC_030_060_05_N_P_AU_TRN_N_20220727_30m.tif") as d:
+                  print(d.profile, d.overviews(1), d.bounds)
+          except Exception as e: print("rio fail", e)
+          r=g("https://geodata.ucdavis.edu/climate/worldclim/2_1/base/wc2.1_2.5m_bio.zip", stream=True); print(r.headers.get("content-length") if r else "")
+          PY
+          git config user.name diag-bot; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b diag-results; git add -f shots; git commit -qm probe; git push -f origin diag-results
