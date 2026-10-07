@@ -1,0 +1,231 @@
+{
+ "built": "2026-10-07",
+ "west": 112.9,
+ "north": -9.0,
+ "res": 0.05,
+ "nx": 822,
+ "ny": 700,
+ "layers": [
+  "ph",
+  "clay",
+  "sand",
+  "soc",
+  "cec",
+  "rain",
+  "rainW",
+  "rainS",
+  "tW",
+  "tS",
+  "tCold",
+  "sal",
+  "ultra",
+  "state",
+  "lc_water",
+  "lc_trees",
+  "lc_flooded",
+  "lc_crops",
+  "lc_built",
+  "lc_bare",
+  "lc_range"
+ ],
+ "notes": {
+  "ph": "pH (water) = v/25+3",
+  "clay": "clay % = v/2.5",
+  "sand": "sand % = v/2.5",
+  "soc": "organic carbon g/kg = v/4",
+  "cec": "CEC cmol/kg = v/4",
+  "rain": "annual rain mm = v*10",
+  "rainW": "Apr-Oct rain mm = v*5",
+  "rainS": "Nov-Mar rain mm = v*5",
+  "tW": "May-Oct mean temp C = v/5-5",
+  "tS": "Nov-Mar mean temp C = v/5-5",
+  "tCold": "coldest month mean C = v/5-10",
+  "sal": "dryland salinity: 2 mapped 2000, 1 forecast 2050",
+  "ultra": "ultramafic belt index (1-based, 0 none)",
+  "state": "state index into states[]",
+  "lc_water": "water cover % of cell",
+  "lc_trees": "trees cover % of cell",
+  "lc_flooded": "flooded cover % of cell",
+  "lc_crops": "crops cover % of cell",
+  "lc_built": "built cover % of cell",
+  "lc_bare": "bare cover % of cell",
+  "lc_range": "range cover % of cell"
+ },
+ "soil": "soilgrids",
+ "states": [
+  "",
+  "NSW",
+  "VIC",
+  "QLD",
+  "SA",
+  "WA",
+  "TAS",
+  "NT",
+  "ACT"
+ ],
+ "ultra": [
+  "Eastern Goldfields greenstones (Kambalda to Leinster)",
+  "Forrestania and Ravensthorpe belts",
+  "Great Serpentinite Belt (Barraba to Port Macquarie)",
+  "Coolac and Tumut serpentinites",
+  "Marlborough serpentinite",
+  "Greenvale and Kalkadoon ultramafics",
+  "Heazlewood and Adamsfield (Tasmania)"
+ ],
+ "ultraPoly": [
+  [
+   [
+    121.2,
+    -31.6
+   ],
+   [
+    122.2,
+    -31.6
+   ],
+   [
+    121.9,
+    -27.3
+   ],
+   [
+    120.6,
+    -27.3
+   ],
+   [
+    120.9,
+    -29.5
+   ]
+  ],
+  [
+   [
+    119.6,
+    -32.6
+   ],
+   [
+    120.2,
+    -32.6
+   ],
+   [
+    120.4,
+    -33.8
+   ],
+   [
+    119.8,
+    -33.8
+   ]
+  ],
+  [
+   [
+    150.3,
+    -30.0
+   ],
+   [
+    150.8,
+    -30.0
+   ],
+   [
+    152.3,
+    -31.6
+   ],
+   [
+    152.0,
+    -31.9
+   ],
+   [
+    150.6,
+    -30.9
+   ]
+  ],
+  [
+   [
+    148.0,
+    -34.7
+   ],
+   [
+    148.3,
+    -34.7
+   ],
+   [
+    148.4,
+    -35.5
+   ],
+   [
+    148.1,
+    -35.5
+   ]
+  ],
+  [
+   [
+    149.6,
+    -22.5
+   ],
+   [
+    150.1,
+    -22.5
+   ],
+   [
+    150.2,
+    -23.1
+   ],
+   [
+    149.7,
+    -23.1
+   ]
+  ],
+  [
+   [
+    144.7,
+    -18.7
+   ],
+   [
+    145.2,
+    -18.7
+   ],
+   [
+    145.2,
+    -19.2
+   ],
+   [
+    144.7,
+    -19.2
+   ]
+  ],
+  [
+   [
+    145.1,
+    -41.1
+   ],
+   [
+    145.5,
+    -41.1
+   ],
+   [
+    146.4,
+    -42.8
+   ],
+   [
+    146.2,
+    -42.9
+   ]
+  ]
+ ],
+ "landCells": 280829,
+ "log": [
+  "soil: SoilGrids 2.0",
+  "  warped phh2o_5-15cm_mean.vrt in 12s, valid=0.49, median=73.44",
+  "  warped clay_5-15cm_mean.vrt in 15s, valid=0.49, median=246.34",
+  "  warped sand_5-15cm_mean.vrt in 14s, valid=0.49, median=625.14",
+  "  warped soc_0-5cm_mean.vrt in 14s, valid=0.49, median=133.64",
+  "  warped cec_5-15cm_mean.vrt in 16s, valid=0.49, median=219.50",
+  "climate: WorldClim 2.1",
+  "  worldclim prec ok, median Jan=52.8",
+  "  worldclim tavg ok, median Jan=28.9",
+  "salinity: NLWRA 2001",
+  "  dsa zip: ['dsa__r9nnd_00211a00es_geo___/', 'dsa__r9nnd_00211a00es_geo___/dsa__r9nnd_00211a00es_geo___.shp', 'dsa__r9nnd_00211a00es_geo___/dsa__r9nnd_00211a00es_geo___.shx', 'dsa__r9nnd_00211a00es_geo___/dsa__r9nnd_00211a00es_geo___.dbf', 'dsa__r9nnd_00211a00es_geo___/dsa__r9nnd_00211a00es_geo___.cpg']",
+  "  salinity failed: ValueError('Cannot transform naive geometries.  Please set a crs on the object first.')",
+  "land cover: Esri Sentinel-2 10 m",
+  "  land cover cells with crops>20%: 26300",
+  "states: Natural Earth",
+  "  states cells: {'NSW': 30896, 'VIC': 9607, 'QLD': 61418, 'SA': 37513, 'WA': 92158, 'TAS': 3324, 'NT': 47027, 'ACT': 128}",
+  "done in 126s, raw 12.1 MB, gz 1.91 MB"
+ ]
+}
