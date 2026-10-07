@@ -5,6 +5,7 @@ Interactive map of global energy, fertiliser, food and metal supply lines, built
 ```
 index.html            dashboard (static, no build step)
 land.html             Land Conversion Atlas (ArcGIS map, click a spot -> crops and conversion pathway)
+au.html               Australian Soil Map (5 km grid, best crop per cell, per-crop suitability)
 soil.html             Soil Resilience Planner (country or farm context -> ranked strategies)
 data/soil.js          soil methods, system-level moves and country defaults
 assets/               app.js, style.css, self-hosted fonts, vendored D3 + topojson
@@ -58,6 +59,12 @@ Flags marked `EST` are model estimates. Country oil balances are approximate pre
 4. shows the conversion pathway and the nearest proven project.
 
 Results export as GeoJSON for ArcGIS Online or Pro, and `data/zones.geojson` holds every zone (with pathway stages and plant lists) and project as a ready-made layer. No API key is needed. Deep links: `land.html#z-wa-salt` for a zone, or `land.html#p31d600_m117d600`-style point links that the page writes as you click.
+
+### Australian Soil Map
+
+`au.html` puts a 0.05 degree (about 5 km) grid of the whole continent on an ArcGIS map. Each of the 280,000 land cells carries topsoil pH, clay, sand, organic carbon and CEC, April to October and November to March rainfall and temperature, the NLWRA dryland salinity assessment, Sentinel-2 land cover fractions and the state. The browser scores 34 Australian crops and land uses (winter grains and pulses, summer crops, tropical horticulture, pastures, salt land plants, tree crops and native nickel accumulators) for every cell, then paints either the best suggestion per cell or the suitability of one chosen crop. Click a cell for the ranked list and the factor that holds each option back, and a state table shows where each suggestion lands by area.
+
+The grid is built by `scripts/build_au_grid.py` on GitHub Actions ("Build Australian soil grid", run by hand or quarterly) and lands in `data/au/` as a 1.9 MB gzip. Soil comes from ISRIC SoilGrids 250 m by default. For the CSIRO and TERN Soil and Landscape Grid of Australia (90 m, better for Australian soils), create a free API key at account.tern.org.au, add it as a repo secret named `TERN_API_KEY`, and rerun the workflow. Deep links: `au.html#crop-chickpea`, `au.html#layer-sal`, `au.html#d-avon`, or `au.html#pm31d60_116d90` for a point.
 
 ### Live data feed
 

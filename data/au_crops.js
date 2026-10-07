@@ -96,7 +96,7 @@ window.AU = {
   ultraPenalty: { grain: 0.35, pulse: 0.3, summer: 0.35, hort: 0.3, pasture: 0.55, salt: 0.6, tree: 0.6 },
   districts: [
     { id: "avon", name: "Avon wheatbelt", at: [116.9, -31.6], z: 8 },
-    { id: "lakegrace", name: "Lake Grace salt", at: [118.5, -33.1], z: 9 },
+    { id: "lakegrace", name: "Lake Grace salt", at: [118.425, -33.075], z: 9 },
     { id: "esperance", name: "Esperance sandplain", at: [121.9, -33.6], z: 8 },
     { id: "geraldton", name: "Geraldton sandplain", at: [115.0, -28.6], z: 8 },
     { id: "kambalda", name: "Kambalda ultramafics", at: [121.6, -31.2], z: 8 },

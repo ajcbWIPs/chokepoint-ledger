@@ -42,7 +42,7 @@ jobs:
       - name: Stage site files only
         run: |
           mkdir _site
-          cp -r index.html soil.html land.html assets data _site/
+          cp -r index.html soil.html land.html au.html assets data _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

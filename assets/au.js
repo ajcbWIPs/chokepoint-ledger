@@ -87,6 +87,8 @@
     if (c.season === "s") return V.rainS[i] * clamp(1 - 0.05 * (V.tS[i] - 25), 0.6, 1.1);
     return V.rain[i] * clamp(1 - 0.04 * ((V.tW[i] + V.tS[i]) / 2 - 16), 0.55, 1.1);
   }
+  // Bare ground inside a mapped salinity area is almost always a scald or salt lake edge.
+  const cellEC = (i) => (V.sal[i] === 2 && V.hasLC && V.lc_bare[i] >= 40 ? 16 : C.salEC[V.sal[i]] ?? 1);
   const F = {};
   function factors(c, i, ecOverride, out = F) {
     const irrig = st.irr && c.irr;
@@ -102,7 +104,7 @@
     let ph = V.ph[i];
     if (st.fix && ph === ph) ph = clamp(ph, 5.8, 8.3);
     const phf = fit(ph, c.ph[0], c.ph[1], 0.9, 0.9);
-    const ec = ecOverride != null ? ecOverride : C.salEC[V.sal[i]] ?? 1;
+    const ec = ecOverride != null ? ecOverride : cellEC(i);
     let salt = ec <= c.T ? 1 : Math.max(0, 1 - (c.b * (ec - c.T)) / 100);
     if (c.salt && ec < 4) salt = 0.2;
     if (c.saltPref && ec < 4) salt = 0.5;
@@ -318,7 +320,7 @@
     const i = cellAt(lon, lat);
     if (i < 0 || !V.land[i]) { $("#cellName").textContent = "Outside the land grid"; $("#cellCrops").innerHTML = ""; return; }
     st.cell = { i, lon, lat, label };
-    st.ec = C.salEC[V.sal[i]] ?? 1;
+    st.ec = cellEC(i);
     $("#ecIn").value = st.ec;
     $("#ecVal").textContent = `${st.ec} dS/m`;
     const tag = (v) => (v < 0 ? "m" : "") + Math.abs(v).toFixed(2).replace(".", "d");
@@ -334,7 +336,7 @@
     const belt = V.ultra[i] ? G.ultra[V.ultra[i] - 1] : null;
     $("#cellName").textContent = label || `${state} cell`;
     $("#cellCoords").textContent = `${Math.abs(lat).toFixed(2)}° S, ${lon.toFixed(2)}° E · 5 km cell${state ? " in " + state : ""}${belt ? " · " + belt : ""}`;
-    const salTxt = ["Not mapped", "Risk by 2050", "Affected in 2000"][V.sal[i]];
+    const salTxt = ["Not mapped", "Risk by 2050", "Affected in 2000"][V.sal[i]] + (cellEC(i) === 16 ? ", scald" : "");
     const ro = [
       ["pH (water)", r1(V.ph[i]), ""], ["Clay", r0(V.clay[i]), "%"], ["Sand", r0(V.sand[i]), "%"],
       ["Organic C", r1(V.soc[i]), "g/kg"], ["Annual rain", r0(V.rain[i]), "mm"], ["Apr to Oct", r0(V.rainW[i]), "mm"],
