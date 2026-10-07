@@ -14,33 +14,24 @@ jobs:
           mkdir -p shots
           pip install -q rasterio requests numpy > /dev/null
           python - <<'PY' > shots/probe.txt 2>&1
-          import requests, json, time, rasterio
+          import requests, json, time, rasterio, traceback
           A="https://esoil.io/TERNLandscapes/RasterProductsAPI/"
-          def g(u, **k):
-              t=time.time()
-              try:
-                  r=requests.get(u, timeout=40, headers={"Origin":"https://ajcbwips.github.io"}, **k)
-                  print("==",u[:160],r.status_code,"cors=",r.headers.get("access-control-allow-origin"),f"{time.time()-t:.1f}s")
-                  return r
-              except Exception as e: print("== FAIL",u[:160],e)
-          r=g(A+"QueryParameterValues?format=json&parameter=Attribute"); print(r.text[:3000] if r else "")
-          r=g(A+"ProductInfo?format=json&attribute=") 
-          if r: 
-              try:
-                  js=r.json(); print(len(js)); 
-                  for p in js: print(json.dumps(p)[:400])
-              except Exception as e: print(r.text[:4000])
-          for at in ["pH (Water)","Clay","Organic Carbon","Available Water Capacity","Depth of Soil","Sand","Effective Cation Exchange Capacity","Total Phosphorus"]:
-              r=g(A+"ProductInfo",params={"format":"json","attribute":at})
-              if r: print(r.text[:2500])
-          r=g(A+"Drill?format=json&verbose=false&COGPath=https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/30m/SOC/SOC_030_060_05_N_P_AU_TRN_N_20220727_30m.tif&latitude=-31.6&longitude=117.6"); print(r.text[:500] if r else "")
-          r=g("https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/"); print(r.text[:3000] if r else "")
-          r=g("https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/30m/SOC/SOC_030_060_05_N_P_AU_TRN_N_20220727_30m.tif", stream=True, )
+          js=requests.get(A+"ProductInfo?format=json&attribute=",timeout=60).json()
+          json.dump(js, open("shots/products.json","w"))
+          cur=[p for p in js if str(p.get("isCurrentVersion"))=="1" and p.get("Component")=="Modelled-Value"]
+          print(len(js), len(cur)); print(json.dumps(js[0]))
+          for p in cur: print(p["Name"], "|", p.get("Attribute"), "|", {k:v for k,v in p.items() if "ath" in k or "URL" in k or "url" in k})
+          ph=[p for p in cur if p["Name"].startswith("PHW_000_005")]
+          for k,v in (ph[0] if ph else js[0]).items():
+              if isinstance(v,str) and v.startswith("http"):
+                  try:
+                      with rasterio.open("/vsicurl/"+v) as d: print("RIO", v, d.profile, d.overviews(1), d.bounds)
+                  except Exception as e: print("rio fail", v, e)
           try:
-              with rasterio.open("/vsicurl/https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/30m/SOC/SOC_030_060_05_N_P_AU_TRN_N_20220727_30m.tif") as d:
-                  print(d.profile, d.overviews(1), d.bounds)
-          except Exception as e: print("rio fail", e)
-          r=g("https://geodata.ucdavis.edu/climate/worldclim/2_1/base/wc2.1_2.5m_bio.zip", stream=True); print(r.headers.get("content-length") if r else "")
+              r=requests.get("https://data.gov.au/data/api/3/action/package_show?id=d86b702b-73ad-4a7e-96ef-4e17fd0240cd",timeout=40).json()
+              for res in r["result"]["resources"]: print("DSA", res.get("format"), res.get("url"))
+          except Exception as e: print("dsa fail", e)
+          r=requests.head("https://geodata.ucdavis.edu/climate/worldclim/2_1/base/wc2.1_2.5m_prec.zip",timeout=40,allow_redirects=True); print("WC", r.status_code, r.headers.get("content-length"))
           PY
           git config user.name diag-bot; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b diag-results; git add -f shots; git commit -qm probe; git push -f origin diag-results
