@@ -14,24 +14,23 @@ jobs:
           mkdir -p shots
           pip install -q rasterio requests numpy > /dev/null
           python - <<'PY' > shots/probe.txt 2>&1
-          import requests, json, time, rasterio, traceback
-          A="https://esoil.io/TERNLandscapes/RasterProductsAPI/"
-          js=requests.get(A+"ProductInfo?format=json&attribute=",timeout=60).json()
-          json.dump(js, open("shots/products.json","w"))
-          cur=[p for p in js if str(p.get("isCurrentVersion"))=="1" and p.get("Component")=="Modelled-Value"]
-          print(len(js), len(cur)); print(json.dumps(js[0]))
-          for p in cur: print(p["Name"], "|", p.get("Attribute"), "|", {k:v for k,v in p.items() if "ath" in k or "URL" in k or "url" in k})
-          ph=[p for p in cur if p["Name"].startswith("PHW_000_005")]
-          for k,v in (ph[0] if ph else js[0]).items():
-              if isinstance(v,str) and v.startswith("http"):
-                  try:
-                      with rasterio.open("/vsicurl/"+v) as d: print("RIO", v, d.profile, d.overviews(1), d.bounds)
-                  except Exception as e: print("rio fail", v, e)
-          try:
-              r=requests.get("https://data.gov.au/data/api/3/action/package_show?id=d86b702b-73ad-4a7e-96ef-4e17fd0240cd",timeout=40).json()
-              for res in r["result"]["resources"]: print("DSA", res.get("format"), res.get("url"))
-          except Exception as e: print("dsa fail", e)
-          r=requests.head("https://geodata.ucdavis.edu/climate/worldclim/2_1/base/wc2.1_2.5m_prec.zip",timeout=40,allow_redirects=True); print("WC", r.status_code, r.headers.get("content-length"))
+          import requests, rasterio, time
+          C=["https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/30m/SOC/SOC_030_060_05_N_P_AU_TRN_N_20220727_30m.tif",
+             "https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/PHW/PHW_000_005_EV_N_P_AU_TRN_N_20220520.tif",
+             "https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/PHW/v1/PHW_000_005_EV_N_P_AU_TRN_N_20220520.tif",
+             "https://esoil.io/TERNLandscapes/Public/Products/TERN/SLGA/CLY/CLY_000_005_EV_N_P_AU_TRN_N_20210902.tif",
+             "https://files.isric.org/soilgrids/latest/data/phh2o/phh2o_0-5cm_mean.vrt"]
+          for u in C:
+              try:
+                  t=time.time()
+                  with rasterio.open("/vsicurl/"+u) as d:
+                      print("OK", u, d.width, d.height, d.overviews(1), d.crs, f"{time.time()-t:.1f}s")
+                      ov=d.overviews(1)
+              except Exception as e: print("FAIL", u, e)
+          for path in ["","SLGA/","SLGA/PHW/","SLGA/30m/"]:
+              r=requests.get("https://esoil.io/TERNLandscapes/Public/Products/TERN/"+path,timeout=30); print("LIST",path,r.status_code,r.text[:1500].replace("\n"," "))
+          r=requests.get("https://esoil.io/TERNLandscapes/RasterProductsAPI/Drill",params={"format":"json","verbose":"false","COGPath":"https://data.tern.org.au/model-derived/slga/NationalMaps/SoilAndLandscapeGrid/PHW/v1/PHW_000_005_EV_N_P_AU_TRN_N_20220520.tif","latitude":-31.6,"longitude":117.6},timeout=40); print("DRILL", r.status_code, r.text[:400])
+          r=requests.get("https://data.gov.au/geoserver/australian-dryland-salinity-assessment-spatial-data-12500000-nlwra-2001/wfs?request=GetFeature&typeName=ckan_d86b702b_73ad_4a7e_96ef_4e17fd0240cd&outputFormat=json",timeout=120); print("DSA", r.status_code, len(r.content), r.text[:1200])
           PY
           git config user.name diag-bot; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b diag-results; git add -f shots; git commit -qm probe; git push -f origin diag-results
