@@ -152,11 +152,15 @@ def imf_cpi():
     return sorted(pts)
 
 
+CPI_SRC = ["US CPI, all items (IMF CPI dataset)"]
+
+
 def us_cpi():
     try:
         return imf_cpi()
     except Exception as e:
         print(f"IMF CPI failed ({e}), trying BLS", flush=True)
+    CPI_SRC[0] = "US CPI-U, all items (BLS)"
     return bls_cpi()
 
 
@@ -318,7 +322,7 @@ def build_history(cols, imfd, cpi):
     doc = {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"), "closure": CLOSURE, "series": series}
     if cpi:
         doc["cpi"] = dict(zip(("start", "v"), to_vector(cpi)))
-        doc["cpi"]["src"] = "US CPI, all items (IMF CPI dataset)"
+        doc["cpi"]["src"] = CPI_SRC[0]
     elif HIST_OUT.exists():
         try:
             prev = json.loads(HIST_OUT.read_text()).get("cpi")
