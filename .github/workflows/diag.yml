@@ -14,27 +14,18 @@ jobs:
           mkdir -p shots
           pip install -q requests openpyxl xlrd > /dev/null
           python - <<'PY' > shots/probe.txt 2>&1
-          import requests, json, re
-          H={"User-Agent":"Mozilla/5.0 (X11; Linux x86_64) Chrome/128 Safari/537.36","Origin":"https://ajcbwips.github.io"}
-          B="https://api.imf.org/external/sdmx/2.1/"
-          def g(u, accept=None):
-              h=dict(H); 
-              if accept: h["Accept"]=accept
-              try:
-                  r=requests.get(u,timeout=90,headers=h); print("==",r.status_code,r.headers.get("content-type"),"cors=",r.headers.get("access-control-allow-origin"),len(r.content),u[:170]); return r
-              except Exception as e: print("== FAIL",u[:170],e)
-          r=g(B+"dataflow/IMF.RES/PCPS/latest?references=datastructure")
-          if r is not None: 
-              t=r.text; print(re.findall(r'<structure:Dimension [^>]*id="([^"]+)"[^>]*position="(\d+)"', t)[:10]); print(re.findall(r'version="([^"]+)"', t)[:4])
-          r=g(B+"data/IMF.RES,PCPS,9.0.0/W00.PURAN.USD.M?startPeriod=2020"); print(r.text[:2900])
-          for key in [".PURAN..M", "G001.PURAN.USD.M", "W00.PURAN.USD.M", "*.PURAN.*.*", "all"]:
-              r=g(B+f"data/IMF.RES,PCPS/{key}?startPeriod=2026-01", accept="application/vnd.sdmx.data+csv;version=1.0.0")
-              if r is not None: print(r.text[:700])
-          r=g(B+"data/IMF.RES,PCPS/all?startPeriod=2026-01&detail=serieskeysonly", accept="application/vnd.sdmx.data+csv;version=1.0.0")
-          if r is not None: print(r.text[:1500])
-          r=g("https://www.cameco.com/invest/markets/uranium-price")
-          if r is not None:
-              t=re.sub(r"<[^>]+>"," ",r.text); t=re.sub(r"\s+"," ",t); i=t.find("pot"); print(t[t.find("Uranium spot"):][:1500])
+          import requests, csv, io, collections
+          ids="PURAN+PPROPANE+PGASO+PHEATOIL+PLITH+PCOBA+PREODOM+PLMMODY+PCHANA+POATS+PCOALAU+POILBRE"
+          r=requests.get(f"https://api.imf.org/external/sdmx/2.1/data/IMF.RES,PCPS/G001.{ids}.USD.M?startPeriod=1960",timeout=120,headers={"Accept":"application/vnd.sdmx.data+csv;version=1.0.0","User-Agent":"Mozilla/5.0"})
+          print(r.status_code, len(r.content))
+          rows=list(csv.DictReader(io.StringIO(r.text)))
+          by=collections.defaultdict(list); meta={}
+          for x in rows:
+              by[x["INDICATOR"]].append((x["TIME_PERIOD"],x["OBS_VALUE"])); meta[x["INDICATOR"]]=x
+          for k,v in by.items():
+              v.sort(); m=meta[k]
+              print(k, len(v), v[0], v[-3:], "| SN:", m.get("SERIES_NAME","")[:160], "| UNIT?", {c:m[c] for c in ("SCALE","CURRENCY","PRICES","COMMODITY_CF") if m.get(c)})
+              print("   DESC:", (m.get("FULL_DESCRIPTION") or "")[:300].replace("\n"," "))
           PY
           git config user.name diag-bot; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b diag-results; git add -f shots; git commit -qm probe; git push -f origin diag-results
