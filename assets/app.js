@@ -78,6 +78,13 @@
   drawTape(null);
 
   // ---------- live price feed (data/live.json, rebuilt daily by GitHub Actions) ----------
+  function horizonLine(id) {
+    const h = window.histChanges && window.histChanges(id);
+    if (!h) return "";
+    const f = (v) => (v == null ? "n/a" : d3.format("+.0%")(v));
+    return `<button type="button" class="hz" data-id="${id}" title="Open the full price history">${[["1y", h.y1], ["5y", h.y5], ["10y", h.y10], ["25y", h.y25]].map(([k, v]) => `<span><i>${k}</i>${f(v)}</span>`).join("")}</button>`;
+  }
+  document.addEventListener("hist-ready", () => { if (window.LIVE) drawLive(window.LIVE); });
   function drawLive(L) {
     const pctF = d3.format("+.0%"), num = (v) => d3.format(v >= 1000 ? ",.0f" : v >= 100 ? ".0f" : ".2f")(v);
     $("#liveStamp").textContent = `Feed updated ${L.updated.replace("T", " ").replace("Z", " UTC")}`;
@@ -85,6 +92,7 @@
       <span class="k"><i class="gdot" style="background:${gColor(s.group)}"></i>${s.label}${s.stale ? ' <span class="stale">STALE</span>' : ""}</span>
       <span class="v">${num(s.latest)}<small>${s.unit}</small></span>
       <span class="d">since closure <b>${s.chg_prewar == null ? "n/a" : s.absolute_change ? d3.format("+.0f")(s.chg_prewar) : pctF(s.chg_prewar)}</b>${s.chg_1m != null ? `, 1 mo ${pctF(s.chg_1m)}` : ""}</span>
+      ${horizonLine(s.id)}
       <svg data-id="${s.id}" role="img" aria-label="${s.label} price history"></svg>
       <span class="d" style="color:var(--muted)">${s.date}</span></div>`).join("");
     const closure = new Date(L.closure);
@@ -102,6 +110,11 @@
       g.append("circle").attr("class", "end").attr("r", 2.5).attr("cx", x(last[0])).attr("cy", y(last[1]));
     });
     $("#liveNote").textContent = `Source: ${L.source}. Dashed line marks the Hormuz closure (${L.closure}). Monthly IMF series lag by about one to two months. Not investment advice.`;
+    document.querySelectorAll("#liveGrid .hz").forEach((b) => (b.onclick = () => {
+      if (window.histSet) window.histSet({ ids: [b.dataset.id], mode: "price" });
+      setTab("hist");
+      document.getElementById("tab-hist").scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
     $("#live").hidden = false;
   }
   fetch("data/live.json", { cache: "no-store" })
@@ -659,6 +672,7 @@
   const tabs = [...document.querySelectorAll(".tab")];
   function setTab(id) {
     state.tab = id;
+    if (id === "hist" && window.histShow) setTimeout(window.histShow, 0);
     tabs.forEach((t) => { const on = t.id === "tab-" + id; t.setAttribute("aria-selected", on); document.getElementById(t.getAttribute("aria-controls")).hidden = !on; });
   }
   tabs.forEach((t) => (t.onclick = () => setTab(t.id.replace("tab-", ""))));
@@ -672,7 +686,7 @@
   drawWeights(); drawBal(); refresh(); drawCrops();
   if (location.hash === "#capture") document.body.classList.add("capture");
   const tabHash = location.hash.replace("#", "");
-  if (["lines", "rank", "crops", "soil", "div", "bal", "method"].includes(tabHash)) setTab(tabHash);
+  if (["lines", "hist", "rank", "crops", "soil", "div", "bal", "method"].includes(tabHash)) setTab(tabHash);
 
   // Repaint colours when the theme changes
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawBal(); refresh(); drawCrops(); });
@@ -695,6 +709,7 @@
     if (o.crop) state.crop = o.crop;
     if (o.sites !== undefined) { soilState.sites = o.sites === true ? "methods" : o.sites; drawSites(); }
     if (o.land !== undefined) { soilState.land = o.land; drawLand(); drawProjects(); }
+    if (o.hist && window.histSet) window.histSet(o.hist);
     if (o.tab) setTab(o.tab);
     if (o.view !== undefined) document.body.classList.toggle("view-panel", o.view === "panel");
     else if (o.tab) document.body.classList.add("view-panel");

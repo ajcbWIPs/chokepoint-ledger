@@ -71,7 +71,11 @@ The grid is built by `scripts/build_au_grid.py` on GitHub Actions ("Build Austra
 `scripts/update_feed.py` writes `data/live.json`, which drives the Live prices strip and the Brent and Diesel headline tiles. The Pages workflow runs it on every push and daily at 08:17 Sydney time, commits the refreshed feed and redeploys.
 
 * **World Bank Pink Sheet** (no key, monthly averages, updated early each month): Brent, WTI, Henry Hub, European gas, Asian LNG, urea, DAP, potash, phosphate rock, copper, nickel, wheat, maize, rice, soybeans.
+* **IMF Primary Commodity Prices** (no key, monthly, api.imf.org): uranium (U3O8 spot), cobalt, lithium, molybdenum, rare earths, propane and oats, which the Pink Sheet does not carry. Uranium and Newcastle coal now sit in the Live prices strip.
+* **US CPI** from the IMF CPI dataset (BLS as a fallback) for the inflation-adjusted view.
 * **EIA daily spot** (optional, free key): Brent, WTI, NY Harbor diesel and Henry Hub every trading day, plus the diesel crack versus Brent. Register at eia.gov/opendata/register.php, then add the key as a repo secret named `EIA_API_KEY` (Settings > Secrets and variables > Actions).
+
+The same script writes `data/history.json`: 38 monthly series with their full history (back to 1960 for most World Bank series, 1992 for the IMF ones) across energy, fertiliser, metals, precious metals and food. The Ledger's **Price history** tab charts up to six of them over 1, 5, 10 or 25 years or the full record, as prices, indexed to 100, or in today's dollars, on a linear or log scale with major market events marked. Below the chart a table gives every series' change over 1, 5, 10 and 25 years, where today's price sits in its 25 year range, and how it compares with its inflation-adjusted 25 year average. The horizon row on each Live prices card opens that series in the tab. Deep link: `index.html#hist`.
 
 Yahoo Finance and FRED's CSV downloads both block GitHub's servers, which is why they aren't used. If a source fails, the last good values stay up with a STALE tag. Run the refresh by hand from Actions > "Refresh data feed and deploy to GitHub Pages" > Run workflow.
 

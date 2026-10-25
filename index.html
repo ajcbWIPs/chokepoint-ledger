@@ -75,6 +75,7 @@
 
   <nav class="tabs" role="tablist" aria-label="Analysis">
     <button class="tab" role="tab" id="tab-lines" aria-selected="true" aria-controls="p-lines">Supply lines</button>
+    <button class="tab" role="tab" id="tab-hist" aria-selected="false" aria-controls="p-hist">Price history</button>
     <button class="tab" role="tab" id="tab-rank" aria-selected="false" aria-controls="p-rank">Constraint ranking</button>
     <button class="tab" role="tab" id="tab-crops" aria-selected="false" aria-controls="p-crops">Staple crops</button>
     <button class="tab" role="tab" id="tab-soil" aria-selected="false" aria-controls="p-soil">Soil without fertiliser</button>
@@ -86,6 +87,24 @@
   <section class="panel" id="p-lines" role="tabpanel" aria-labelledby="tab-lines">
     <p class="callout">Vulnerability blends chokepoint risk, supplier concentration, how hard it is to switch origin, importer stock cover and the share of flow that is stopped right now. Click a column to sort, click a row to find it on the map.</p>
     <div class="tscroll"><table id="routeTable"></table></div>
+  </section>
+
+  <section class="panel" id="p-hist" role="tabpanel" aria-labelledby="tab-hist" hidden>
+    <div class="histctl" aria-label="Chart controls">
+      <div class="field"><span class="lab">Range</span><div class="chips" id="hRange" role="radiogroup" aria-label="Time range"></div></div>
+      <div class="field"><span class="lab">Show as</span><div class="chips" id="hMode" role="radiogroup" aria-label="Value mode"></div></div>
+      <label class="check"><input type="checkbox" id="hLog"> Log scale <span class="note">Equal heights mean equal percentage moves</span></label>
+      <label class="check"><input type="checkbox" id="hEvents" checked> Mark events</label>
+    </div>
+    <div class="histpick" id="hPick" aria-label="Pick up to six series"></div>
+    <div class="histchart">
+      <div class="histlegend" id="hLegend"></div>
+      <svg id="hSvg" role="img" aria-label="Price history chart"></svg>
+      <p class="note" id="hNote"></p>
+    </div>
+    <div class="sec-head"><h3>Every series across horizons</h3><span class="note" id="hStamp"></span></div>
+    <p class="note">Change is the latest monthly average against the same month 1, 5, 10 and 25 years earlier, in nominal US dollars. The range bar places today's price inside its 25 year low to high, and "real vs 25y avg" compares today's price with its inflation-adjusted 25 year average. Click a row to chart it.</p>
+    <div class="tscroll"><table id="hTable"></table></div>
   </section>
 
   <section class="panel" id="p-rank" role="tabpanel" aria-labelledby="tab-rank" hidden>
@@ -183,5 +202,6 @@
 <script src="data/soil.js"></script>
 <script src="data/atlas-index.js"></script>
 <script src="assets/app.js"></script>
+<script src="assets/history.js"></script>
 </body>
 </html>

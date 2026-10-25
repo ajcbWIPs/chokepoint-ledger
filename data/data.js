@@ -303,6 +303,9 @@ window.DATA = {
   ],
 
   sources: {
+    wbpink: { t: "World Bank Commodity Price Data (Pink Sheet), monthly from 1960", u: "https://www.worldbank.org/en/research/commodity-markets" },
+    imfpcps: { t: "IMF Primary Commodity Prices (uranium, cobalt, lithium, molybdenum, rare earths, propane, oats)", u: "https://data.imf.org/en/datasets/IMF.RES:PCPS" },
+    imfcpi: { t: "IMF CPI dataset, US all items (for inflation-adjusted history)", u: "https://data.imf.org/en/datasets/IMF.STA:CPI" },
     iea: { t: "IEA Oil Market Report, September 2026", u: "https://www.iea.org/reports/oil-market-report-september-2026" },
     lloyds: { t: "Lloyd's List Intelligence, Strait of Hormuz Brief, 9 Sep 2026", u: "https://www.lloydslistintelligence.com/resources/blog/strait-of-hormuz-brief-9-september-2026" },
     ifa: { t: "IFA, Assessment of Fertilizer Use by Crop at the Global Level, 2014/15", u: "https://api.ifastat.org/reports/download/12246" },
