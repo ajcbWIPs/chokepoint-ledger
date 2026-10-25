@@ -1,0 +1,45 @@
+name: diag
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: |
+          mkdir -p shots
+          pip install -q requests openpyxl xlrd > /dev/null
+          python - <<'PY' > shots/probe.txt 2>&1
+          import requests, json, re, io
+          H={"User-Agent":"Mozilla/5.0 (X11; Linux x86_64) Chrome/128 Safari/537.36","Origin":"https://ajcbwips.github.io"}
+          def g(u, **k):
+              try:
+                  r=requests.get(u,timeout=60,headers=H,**k); print("==",r.status_code,"cors=",r.headers.get("access-control-allow-origin"),len(r.content),u[:150]); return r
+              except Exception as e: print("== FAIL",u[:150],e)
+          r=g("https://api.db.nomics.world/v22/series/IMF/PCPS/M.W00.PURAN.USD?observations=1")
+          if r is not None and r.ok:
+              d=r.json()["series"]["docs"][0]; print(d.get("series_name"), d["period"][:3], d["period"][-3:], d["value"][-3:])
+          r=g("https://api.db.nomics.world/v22/series/IMF/PCPS?dimensions=%7B%22FREQ%22%3A%5B%22M%22%5D%2C%22REF_AREA%22%3A%5B%22W00%22%5D%2C%22UNIT_MEASURE%22%3A%5B%22USD%22%5D%7D&limit=1000&observations=0")
+          if r is not None and r.ok:
+              js=r.json(); docs=js["series"]["docs"]; print("PCPS USD monthly series:",len(docs))
+              for d in docs: print("  ",d["series_code"],"|",d.get("series_name"))
+          r=g("https://api.db.nomics.world/v22/datasets/IMF/PCPS")
+          if r is not None and r.ok: print(json.dumps(r.json()["datasets"]["docs"][0].get("indexed_at")), r.json()["datasets"]["docs"][0].get("nb_series"))
+          for u in ["https://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/PCPS/M.W00.PURAN.USD",
+                    "https://api.imf.org/external/sdmx/2.1/data/IMF.RES,PCPS,9.0.0/W00.PURAN.USD.M?startPeriod=2020",
+                    "https://api.imf.org/external/sdmx/3.0/data/dataflow/IMF.RES/PCPS/+/W00.PURAN.USD.M",
+                    "https://www.imf.org/en/research/commodity-prices"]:
+              r=g(u)
+              if r is not None: print(r.text[:400].replace("\n"," "))
+          r=g("https://www.imf.org/en/research/commodity-prices")
+          if r is not None and r.ok:
+              for l in sorted(set(re.findall(r'href="([^"]+\.(?:xlsx?|csv|ashx)[^"]*)"', r.text))): print("  link", l)
+          r=g("https://www.cameco.com/invest/markets/uranium-price")
+          if r is not None: print(r.text[:300].replace("\n"," "))
+          PY
+          git config user.name diag-bot; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b diag-results; git add -f shots; git commit -qm probe; git push -f origin diag-results
