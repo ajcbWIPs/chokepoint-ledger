@@ -14,32 +14,27 @@ jobs:
           mkdir -p shots
           pip install -q requests openpyxl xlrd > /dev/null
           python - <<'PY' > shots/probe.txt 2>&1
-          import requests, json, re, io
+          import requests, json, re
           H={"User-Agent":"Mozilla/5.0 (X11; Linux x86_64) Chrome/128 Safari/537.36","Origin":"https://ajcbwips.github.io"}
-          def g(u, **k):
+          B="https://api.imf.org/external/sdmx/2.1/"
+          def g(u, accept=None):
+              h=dict(H); 
+              if accept: h["Accept"]=accept
               try:
-                  r=requests.get(u,timeout=60,headers=H,**k); print("==",r.status_code,"cors=",r.headers.get("access-control-allow-origin"),len(r.content),u[:150]); return r
-              except Exception as e: print("== FAIL",u[:150],e)
-          r=g("https://api.db.nomics.world/v22/series/IMF/PCPS/M.W00.PURAN.USD?observations=1")
-          if r is not None and r.ok:
-              d=r.json()["series"]["docs"][0]; print(d.get("series_name"), d["period"][:3], d["period"][-3:], d["value"][-3:])
-          r=g("https://api.db.nomics.world/v22/series/IMF/PCPS?dimensions=%7B%22FREQ%22%3A%5B%22M%22%5D%2C%22REF_AREA%22%3A%5B%22W00%22%5D%2C%22UNIT_MEASURE%22%3A%5B%22USD%22%5D%7D&limit=1000&observations=0")
-          if r is not None and r.ok:
-              js=r.json(); docs=js["series"]["docs"]; print("PCPS USD monthly series:",len(docs))
-              for d in docs: print("  ",d["series_code"],"|",d.get("series_name"))
-          r=g("https://api.db.nomics.world/v22/datasets/IMF/PCPS")
-          if r is not None and r.ok: print(json.dumps(r.json()["datasets"]["docs"][0].get("indexed_at")), r.json()["datasets"]["docs"][0].get("nb_series"))
-          for u in ["https://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/PCPS/M.W00.PURAN.USD",
-                    "https://api.imf.org/external/sdmx/2.1/data/IMF.RES,PCPS,9.0.0/W00.PURAN.USD.M?startPeriod=2020",
-                    "https://api.imf.org/external/sdmx/3.0/data/dataflow/IMF.RES/PCPS/+/W00.PURAN.USD.M",
-                    "https://www.imf.org/en/research/commodity-prices"]:
-              r=g(u)
-              if r is not None: print(r.text[:400].replace("\n"," "))
-          r=g("https://www.imf.org/en/research/commodity-prices")
-          if r is not None and r.ok:
-              for l in sorted(set(re.findall(r'href="([^"]+\.(?:xlsx?|csv|ashx)[^"]*)"', r.text))): print("  link", l)
+                  r=requests.get(u,timeout=90,headers=h); print("==",r.status_code,r.headers.get("content-type"),"cors=",r.headers.get("access-control-allow-origin"),len(r.content),u[:170]); return r
+              except Exception as e: print("== FAIL",u[:170],e)
+          r=g(B+"dataflow/IMF.RES/PCPS/latest?references=datastructure")
+          if r is not None: 
+              t=r.text; print(re.findall(r'<structure:Dimension [^>]*id="([^"]+)"[^>]*position="(\d+)"', t)[:10]); print(re.findall(r'version="([^"]+)"', t)[:4])
+          r=g(B+"data/IMF.RES,PCPS,9.0.0/W00.PURAN.USD.M?startPeriod=2020"); print(r.text[:2900])
+          for key in [".PURAN..M", "G001.PURAN.USD.M", "W00.PURAN.USD.M", "*.PURAN.*.*", "all"]:
+              r=g(B+f"data/IMF.RES,PCPS/{key}?startPeriod=2026-01", accept="application/vnd.sdmx.data+csv;version=1.0.0")
+              if r is not None: print(r.text[:700])
+          r=g(B+"data/IMF.RES,PCPS/all?startPeriod=2026-01&detail=serieskeysonly", accept="application/vnd.sdmx.data+csv;version=1.0.0")
+          if r is not None: print(r.text[:1500])
           r=g("https://www.cameco.com/invest/markets/uranium-price")
-          if r is not None: print(r.text[:300].replace("\n"," "))
+          if r is not None:
+              t=re.sub(r"<[^>]+>"," ",r.text); t=re.sub(r"\s+"," ",t); i=t.find("pot"); print(t[t.find("Uranium spot"):][:1500])
           PY
           git config user.name diag-bot; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b diag-results; git add -f shots; git commit -qm probe; git push -f origin diag-results
