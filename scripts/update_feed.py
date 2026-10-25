@@ -130,8 +130,37 @@ def imf(ids):
     return {k: sorted(v) for k, v in out.items()}
 
 
-# ---------------------------------------------------------------- US CPI for inflation-adjusted views (BLS, no key)
+# ---------------------------------------------------------------- US CPI for inflation-adjusted views
+def imf_cpi():
+    """US all-items CPI from the IMF CPI dataset (no key). BLS is the fallback."""
+    import csv
+    url = "https://api.imf.org/external/sdmx/2.1/data/IMF.STA,CPI/USA.CPI._T.IX.M?startPeriod=1955"
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/vnd.sdmx.data+csv;version=1.0.0"})
+    with urllib.request.urlopen(req, timeout=90) as r:
+        text = r.read().decode("utf-8", "replace")
+    pts = []
+    for row in csv.DictReader(io.StringIO(text)):
+        m = re.match(r"^(\d{4})-M(\d{2})$", row.get("TIME_PERIOD") or "")
+        try:
+            v = float(row["OBS_VALUE"])
+        except (TypeError, ValueError, KeyError):
+            continue
+        if m:
+            pts.append((f"{m.group(1)}-{m.group(2)}-01", v))
+    if len(pts) < 100:
+        raise RuntimeError(f"IMF CPI returned {len(pts)} months")
+    return sorted(pts)
+
+
 def us_cpi():
+    try:
+        return imf_cpi()
+    except Exception as e:
+        print(f"IMF CPI failed ({e}), trying BLS", flush=True)
+    return bls_cpi()
+
+
+def bls_cpi():
     pts = []
     this_year = date.today().year
     for y0 in range(1960, this_year + 1, 10):
@@ -229,8 +258,6 @@ HISTORY = [
     ("SOY", "Soybeans", "Food", "wb:Soybeans", "$/t"),
     ("SOYOIL", "Soybean oil", "Food", "wb:Soybean oil", "$/t"),
     ("PALMOIL", "Palm oil", "Food", "wb:Palm oil", "$/t"),
-    ("BARLEY", "Barley", "Food", "wb:Barley", "$/t"),
-    ("SORGHUM", "Sorghum", "Food", "wb:Sorghum", "$/t"),
     ("SUGAR", "Sugar (world)", "Food", "wb:Sugar, world", "$/kg"),
     ("OATS", "Oats", "Food", "imf:POATS", "$/bu"),
 ]
@@ -291,7 +318,7 @@ def build_history(cols, imfd, cpi):
     doc = {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"), "closure": CLOSURE, "series": series}
     if cpi:
         doc["cpi"] = dict(zip(("start", "v"), to_vector(cpi)))
-        doc["cpi"]["src"] = "US CPI-U, BLS"
+        doc["cpi"]["src"] = "US CPI, all items (IMF CPI dataset)"
     elif HIST_OUT.exists():
         try:
             prev = json.loads(HIST_OUT.read_text()).get("cpi")
