@@ -1,0 +1,34 @@
+name: diag
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p shots
+          python3 - <<'PY' > shots/probe.txt 2>&1
+          import urllib.request, json, sys
+          sys.path.insert(0, "scripts")
+          import update_feed as U
+          try:
+              c = U.us_cpi(); print("BLS ok", len(c), c[:2], c[-2:])
+          except Exception as e:
+              import traceback; traceback.print_exc()
+          for u in ["https://api.imf.org/external/sdmx/2.1/data/IMF.STA,CPI/USA.CPI._T.IX.M?startPeriod=2025",
+                    "https://api.imf.org/external/sdmx/2.1/data/IMF.STA,CPI/USA..._T.IX.M?startPeriod=2025",
+                    "https://api.imf.org/external/sdmx/2.1/data/IMF.STA,CPI/USA.*.*.*.M?startPeriod=2026-06"]:
+              try:
+                  req = urllib.request.Request(u, headers={"User-Agent": U.UA, "Accept": "application/vnd.sdmx.data+csv;version=1.0.0"})
+                  t = urllib.request.urlopen(req, timeout=60).read().decode()
+                  lines = t.splitlines(); print("IMF CPI", len(lines), u); 
+                  for l in lines[1:12]: print("   ", l[:160])
+              except Exception as e: print("IMF CPI fail", u, e)
+          d = U.imf(["PBARL", "PSORG", "PWHEAMT"])
+          for k, v in d.items(): print(k, v[0], v[-2:])
+          PY
+          git config user.name diag-bot; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b diag-results; git add -f shots; git commit -qm probe; git push -f origin diag-results
